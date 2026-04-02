@@ -1,0 +1,85 @@
+<style>
+  .derma-ai-header-icon-wrapper {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    transition: transform 0.2s ease;
+  }
+  .derma-ai-header-icon-wrapper:hover {
+    transform: scale(1.1);
+  }
+  .derma-ai-header-icon img {
+    display: block;
+    max-width: 28px;
+    height: auto;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  (function() {
+    function injectDermaIcon() {
+      // If already exists, don't add again
+      if (document.getElementById('derma-header-link')) return;
+
+      // Try multiple common header selectors used by various Shopify themes
+      const selectors = [
+        '.header__icons',           // Dawn & standard themes
+        '.site-header__icons',      // Older themes
+        '.header-item--icons',      // Prestige/Impulse
+        '.header-actions',          // Various
+        '.site-header__cart',       // Fallback to cart area
+        '[data-header-icons]'       // Data attributes
+      ];
+      
+      let container = null;
+      for (const selector of selectors) {
+        container = document.querySelector(selector);
+        if (container) break;
+      }
+
+      // If no standard container found, try to find the Cart icon and prepend there
+      if (!container) {
+        container = document.querySelector('a[href*="/cart"]')?.parentElement;
+      }
+
+      if (container) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'derma-ai-header-icon-wrapper';
+        wrapper.id = 'derma-header-link';
+        
+        wrapper.innerHTML = `
+          <a href="/apps/derma-advisor" 
+             target="_blank" 
+             rel="noopener noreferrer" 
+             class="derma-ai-header-icon">
+            <img src="https://cdn.shopify.com/s/files/1/0733/5949/1237/files/derma-logo.png?v=1767682132" 
+                 alt="AI Analysis" 
+                 width="28" 
+                 height="28">
+          </a>
+        `;
+        
+        // Add it to the header
+        container.prepend(wrapper);
+        console.log("✅ Derma Icon Injected into:", container.className);
+      } else {
+        console.warn("❌ Derma Icon: Could not find header container.");
+      }
+    }
+
+    // Run immediately and on various load events
+    injectDermaIcon();
+    window.addEventListener('load', injectDermaIcon);
+    document.addEventListener('shopify:section:load', injectDermaIcon);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "AI Header Icon",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}

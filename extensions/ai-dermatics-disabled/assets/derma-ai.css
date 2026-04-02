@@ -1,0 +1,784 @@
+/* ============================================================
+   DERMA AI — FIGMA CHAT STYLE (PERFECT 2025 UI)
+   Clean • Modern • Soft • Rounded • Premium Dermatology Look
+============================================================ */
+
+:root {
+  --derma-blue: #2563EB;
+  --derma-blue-dark: #1E4FC4;
+  --derma-text: #111827;
+  --derma-light-text: #6B7280;
+  --derma-bg: #FFFFFF;
+  --derma-bg-light: #F9FAFB;
+  --derma-border: #E5E7EB;
+  --derma-radius: 20px;
+  --derma-big-radius: 28px;
+  --derma-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+/* ============================================================
+   DRAWER
+============================================================ */
+#derma-ai-drawer {
+  position: fixed;
+  top: 0;
+  right: -520px;
+  width: 520px;
+  height: 100vh;
+  background: var(--derma-bg);
+  box-shadow: -6px 0 24px rgba(0,0,0,0.20);
+  z-index: 9999999;
+  transition: right 0.36s cubic-bezier(.25,.8,.25,1);
+  display: flex;
+  flex-direction: column;
+  font-family: Inter, sans-serif;
+}
+
+#derma-ai-drawer.open { right: 0; }
+
+/* ============================================================
+   HEADER (Figma Style)
+============================================================ */
+.derma-ai-drawer-header {
+  height: 72px;
+  padding: 0 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 22px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--derma-border);
+  background: #fff;
+}
+
+.wizard-close {
+  font-size: 30px;
+  cursor: pointer;
+  color: var(--derma-light-text);
+}
+.wizard-close:hover { color: var(--derma-blue); }
+
+/* ============================================================
+   CHAT SCREEN AREA
+============================================================ */
+.derma-ai-chat-screen {
+  padding: 26px;
+  overflow-y: auto;
+  height: calc(100vh - 72px);
+  background: #fff;
+}
+
+/* ============================================================
+   CHAT ROWS (Bubble System)
+============================================================ */
+
+.chat-row {
+  width: 100%;
+  display: flex;
+  margin-bottom: 16px;
+  align-items: flex-end;
+}
+
+.chat-row.bot { justify-content: flex-start; }
+.chat-row.user, .chat-row.user-prompt-row { justify-content: flex-end; }
+
+.derma-avatar {
+  display: flex;
+  flex-shrink: 0;
+}
+.derma-avatar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--derma-border);
+  background: var(--derma-bg-light);
+  object-fit: contain;
+}
+.bot-avatar { margin-right: 8px; margin-bottom: 6px; }
+.user-avatar { margin-left: 8px; margin-bottom: 6px;}
+
+/* -------------------------------
+   Bot Bubble
+--------------------------------*/
+.bot-bubble {
+  background: var(--derma-bg-light);
+  padding: 16px 20px;
+  border-radius: var(--derma-big-radius);
+  border-bottom-left-radius: 4px;
+  border: 1px solid var(--derma-border);
+  max-width: 82%;
+  font-size: 15px;
+  line-height: 1.5;
+  box-shadow: var(--derma-shadow);
+  color: var(--derma-text);
+}
+
+/* -------------------------------
+   User Bubble (Blue Figma Style)
+--------------------------------*/
+.user-bubble {
+  background: var(--derma-blue);
+  padding: 12px 18px;
+  border-radius: var(--derma-big-radius);
+  border-bottom-right-radius: 4px;
+  color: #fff;
+  max-width: 80%;
+  font-size: 15px;
+  line-height: 1.5;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.user-bubble .user-choice-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* -------------------------------
+   User Prompt (White Bubble, Blue Text)
+--------------------------------*/
+.user-prompt-bubble {
+  background: #fff;
+  padding: 14px 20px;
+  border-radius: var(--derma-big-radius);
+  border-bottom-right-radius: 4px;
+  border: 1px solid var(--derma-border);
+  max-width: 80%;
+  box-shadow: var(--derma-shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.user-prompt-bubble .main-text {
+  color: var(--derma-blue);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.user-prompt-bubble .sub-text {
+  color: #ef4444; /* red-500 */
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 6px;
+  line-height: 1.3;
+}
+
+/* ============================================================
+   UI BLOCK WRAPPER (Cards, Buttons, etc.)
+============================================================ */
+.chat-ui-block {
+  margin: 16px 0;
+}
+
+/* ============================================================
+   CARD SELECT (Figma Big Cards)
+============================================================ */
+.card-select-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.card-select-item {
+  background: #fff;
+  border-radius: var(--derma-radius);
+  padding: 18px;
+  border: 1px solid var(--derma-border);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+  box-shadow: var(--derma-shadow);
+}
+
+.card-select-item:hover {
+  border-color: var(--derma-blue);
+  transform: translateY(-3px);
+}
+
+.card-select-item img {
+  width: 70px;
+  height: 70px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.card-select-item .title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   PILL LIST (Smooth Figma Style)
+============================================================ */
+.pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pill-item {
+  background: #eef2ff;
+  border-radius: 999px;
+  padding: 10px 18px;
+  border: 1px solid var(--derma-border);
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.pill-item:hover {
+  background: #dbe4ff;
+  border-color: var(--derma-blue);
+}
+
+/* ============================================================
+   BUTTON LIST
+============================================================ */
+.btn-list {
+  display: grid;
+  gap: 14px;
+}
+
+.figma-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--derma-radius);
+  font-size: 16px;
+  cursor: pointer;
+  border: 1px solid var(--derma-border);
+  background: var(--derma-bg-light);
+  transition: 0.2s;
+}
+
+.figma-btn:hover {
+  border-color: var(--derma-blue);
+  background: #eef4ff;
+}
+
+.figma-btn.primary {
+  background: var(--derma-blue);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+.figma-btn.primary:hover {
+  background: var(--derma-blue-dark);
+}
+
+.figma-btn.secondary {
+  background: #f3f4f6;
+  border: 1px solid var(--derma-border);
+}
+
+/* ============================================================
+   GOAL GRID (Multi-Select)
+============================================================ */
+.goal-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.goal-item {
+  padding: 16px;
+  border-radius: var(--derma-radius);
+  background: var(--derma-bg-light);
+  border: 1px solid var(--derma-border);
+  cursor: pointer;
+  transition: 0.25s ease;
+  font-size: 16px;
+}
+
+.goal-item.active {
+  background: var(--derma-blue);
+  color: #fff;
+  border-color: var(--derma-blue);
+}
+
+/* ============================================================
+   IMAGE UPLOAD
+============================================================ */
+.upload-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: var(--derma-radius);
+  border: 1px solid var(--derma-border);
+  box-shadow: var(--derma-shadow);
+}
+
+.upload-btn {
+  margin-top: 12px;
+  background: var(--derma-blue);
+  color: white;
+  padding: 14px;
+  border-radius: var(--derma-radius);
+  cursor: pointer;
+  text-align: center;
+  display: block;
+  font-size: 16px;
+}
+.upload-btn:hover {
+  background: var(--derma-blue-dark);
+}
+
+/* ============================================================
+   ANALYSIS CARDS (Figma White Blocks)
+============================================================ */
+.analysis-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.analysis-card {
+  border: 1px solid var(--derma-border);
+  background: #fff;
+  border-radius: var(--derma-radius);
+  padding: 18px;
+  box-shadow: var(--derma-shadow);
+}
+
+.analysis-card .label {
+  font-size: 14px;
+  color: var(--derma-light-text);
+}
+
+.analysis-card .score {
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 6px;
+  color: var(--derma-text);
+}
+
+/* ============================================================
+   ROUTINE BLOCK (AM / PM)
+============================================================ */
+.category-title { 
+  font-size: 12px; 
+  text-transform: uppercase; 
+  color: #6B7280; 
+  font-weight: 700; 
+  margin-bottom: 6px; 
+  letter-spacing: 0.5px;
+}
+.routine-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 16px 0;
+  color: var(--derma-text);
+}
+
+.routine-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.routine-item img {
+  width: 75px;
+  height: 75px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.routine-item .name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.routine-item .price {
+  font-size: 16px;
+  color: var(--derma-blue);
+  margin: 4px 0;
+}
+
+.add-cart {
+  background: var(--derma-blue);
+  padding: 10px 16px;
+  border-radius: 14px;
+  color: white;
+  cursor: pointer;
+  border: none;
+  transition: 0.25s;
+}
+
+.add-cart:hover {
+  background: var(--derma-blue-dark);
+}
+
+.add-cart.added {
+  background: #10B981 !important;
+}
+.price span {
+  text-decoration: line-through;
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
+}
+/* ============================================================
+   PDF REPORT
+============================================================ */
+.pdf-preview {
+  width: 100%;
+  height: 420px;
+  border-radius: var(--derma-radius);
+  border: 1px solid var(--derma-border);
+  box-shadow: var(--derma-shadow);
+}
+
+.report-actions {
+  display: grid;
+  gap: 14px;
+}
+
+/* ============================================================
+   FINAL ACTIONS
+============================================================ */
+.final-actions {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Typing Indicator */
+.typing {
+  display: flex;
+  gap: 4px;
+  padding: 12px 18px;
+}
+
+.typing .dot {
+  width: 8px;
+  height: 8px;
+  background: #2563EB;
+  border-radius: 50%;
+  animation: blink 1.4s infinite both;
+}
+.typing .dot:nth-child(2) { animation-delay: 0.2s; }
+.typing .dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0% { opacity: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+/* ===== Routine ===== */
+.routine-wrapper h3 span { color:#2563eb; }
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 12px;
+}
+.product-card {
+  background:#fff;
+  border-radius:14px;
+  padding:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,.06);
+  position:relative;
+}
+.product-card img {
+  width:100%;
+  height:120px;
+  object-fit:contain;
+}
+.badge {
+  position:absolute;
+  top:8px; left:8px;
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:14px;
+  color:#fff;
+}
+.badge.rec { background:#2563eb; }
+.badge.alt { background:#f97316; }
+
+.product-title {
+  font-size:13px;
+  margin:6px 0;
+}
+.price span {
+  text-decoration:line-through;
+  font-size:12px;
+  color:#999;
+}
+.add-btn {
+  width:100%;
+  margin-top:6px;
+  padding:8px;
+  border-radius:8px;
+  background:#ecfdf5;
+  border:1px solid #22c55e;
+  color:#16a34a;
+  font-weight:600;
+}
+
+.add-all-btn {
+  margin:16px 0;
+  width:100%;
+  padding:12px;
+  background:#2563eb;
+  color:#fff;
+  border-radius:12px;
+  border:none;
+}
+
+/* ===== Report ===== */
+.report-box {
+  background:#e6f7ea;
+  padding:14px;
+  border-radius:14px;
+  margin:10px 0;
+}
+
+.report-actions {
+  display:flex;
+  gap:10px;
+}
+.report-actions button {
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+}
+.report-actions .primary {
+  background:#2563eb;
+  color:#fff;
+}
+
+.ai-report-wrapper {
+  margin-top: 16px;
+}
+
+.ai-report-header .step {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.ai-report-header .desc {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.ai-report-card-main {
+  background: #e8f9ee;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.ai-report-card-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ai-report-card-top .icon {
+  font-size: 28px;
+}
+
+.ai-report-card-top h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ai-report-card-top .plan {
+  font-size: 14px;
+  margin: 2px 0;
+}
+
+.ai-report-card-top .date {
+  font-size: 12px;
+  color: #666;
+}
+
+.ai-report-download-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ai-report-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.ai-report-download-btn{
+  width:100%;
+  margin-top:12px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:600;
+  cursor:pointer;
+  background:#22c55e;
+  color:#fff;
+}
+
+
+
+/* ============================================================
+   MOBILE OVERRIDES ONLY
+   (Desktop remains untouched)
+============================================================ */
+@media (max-width: 768px) {
+
+  /* Drawer takes full width on mobile */
+  #derma-ai-drawer {
+    width: 100%;
+    right: -100%;
+  }
+
+  #derma-ai-drawer.open {
+    right: 0;
+  }
+
+  /* Reduce padding for chat area */
+  .derma-ai-chat-screen {
+    padding: 16px;
+  }
+
+  /* Header text size */
+  .derma-ai-drawer-header {
+    font-size: 18px;
+    padding: 0 16px;
+  }
+
+  /* Chat bubbles */
+  .bot-bubble,
+  .user-bubble {
+    max-width: 100%;
+    font-size: 14px;
+    padding: 14px 16px;
+  }
+
+  /* Card select stack */
+  .card-select-item {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .card-select-item img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .card-select-item .title {
+    font-size: 15px;
+  }
+
+  /* Buttons */
+  .figma-btn {
+    font-size: 15px;
+    padding: 14px;
+  }
+
+  /* Goal grid spacing */
+  .goal-item {
+    font-size: 15px;
+    padding: 14px;
+  }
+
+  /* Product grid → 1 column on mobile */
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-card img {
+    height: 140px;
+  }
+
+  .product-title {
+    font-size: 14px;
+  }
+
+  .price {
+    font-size: 14px;
+  }
+
+  .add-btn {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* Add All + Next buttons spacing */
+  .add-all-btn,
+  .figma-btn.primary {
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  /* AI Report Card */
+  .ai-report-card-main {
+    padding: 14px;
+  }
+
+  .ai-report-card-top {
+    gap: 10px;
+  }
+
+  .ai-report-card-top .icon {
+    font-size: 24px;
+  }
+
+  .ai-report-card-top h4 {
+    font-size: 15px;
+  }
+
+  .ai-report-card-top .plan {
+    font-size: 13px;
+  }
+
+  .ai-report-card-top .date {
+    font-size: 12px;
+  }
+
+  /* Download button */
+  .ai-report-download-btn {
+    font-size: 15px;
+    padding: 12px;
+  }
+
+  /* Final action buttons stack */
+  .ai-report-actions,
+  .final-actions {
+    flex-direction: column;
+  }
+
+  .ai-report-actions button,
+  .final-actions button {
+    width: 100%;
+  }
+}
+
+
+.derma-ai-header-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.header__icons .shopify-app-block {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* If the full page container exists, hide the floating launcher */
+#derma-full-page-container ~ #derma-ai-launcher,
+#derma-full-page-container #derma-ai-launcher {
+    display: none !important;
+}

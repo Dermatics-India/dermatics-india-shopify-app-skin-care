@@ -1,0 +1,23 @@
+<div id="derma-ai-embed"></div>
+
+<script>
+  window.__DERMA_AI_EMBED_ENABLED__ = true;
+</script>
+
+<link rel="stylesheet" href="{{ 'derma-ai.css' | asset_url }}">
+<script src="{{ 'derma-ai.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "AI Embed",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_ai_embed",
+      "label": "Enable Embed",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

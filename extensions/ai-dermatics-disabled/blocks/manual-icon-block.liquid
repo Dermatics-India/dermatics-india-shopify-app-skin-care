@@ -1,0 +1,85 @@
+{%- comment -%}
+  This is an App Block that a merchant can add to any section 
+  (e.g., product page, footer, or custom section).
+{%- endcomment -%}
+
+<div class="derma-manual-block-wrapper" style="text-align: {{ block.settings.alignment }}; padding: {{ block.settings.padding }}px 0;">
+  <a
+    href="/apps/derma-advisor"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="derma-manual-icon-link"
+    style="display: inline-block; text-decoration: none;"
+  >
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+      <img
+        src="https://cdn.shopify.com/s/files/1/0733/5949/1237/files/derma-logo.png?v=1767682132"
+        alt="AI Skin & Hair Analysis"
+        width="{{ block.settings.icon_width }}"
+        height="{{ block.settings.icon_width }}"
+        style="cursor:pointer;"
+      >
+      {% if block.settings.show_text %}
+        <span style="color: {{ block.settings.text_color }}; font-weight: 600;">{{ block.settings.label }}</span>
+      {% endif %}
+    </div>
+  </a>
+</div>
+
+{% schema %}
+{
+  "name": "AI Advisor Manual Icon",
+  "target": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "icon_width",
+      "min": 24,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Icon Width",
+      "default": 48
+    },
+    {
+      "type": "checkbox",
+      "id": "show_text",
+      "label": "Show Label Text",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Button Label",
+      "default": "Start AI Analysis"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Vertical Padding",
+      "default": 10
+    }
+  ]
+}
+{% endschema %}
