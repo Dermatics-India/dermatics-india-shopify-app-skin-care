@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "92882f522785015d08e74946009e779f"
-name = "new-derma"
+name = "skeencareai"
 application_url = "https://example.com"
 embedded = true
 
@@ -11,14 +11,23 @@ automatically_update_urls_on_dev = true
 [webhooks]
 api_version = "2026-01"
 
+[[webhooks.subscriptions]]
+topics = [ "app/uninstalled" ]
+uri = "/api/webhooks"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "read_products,write_products,read_themes,write_themes"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://example.com/api/auth/callback" ]
 
 [app_proxy]
 url = "https://app.dermatics.in/api/proxy"
 subpath = "derma-advisor"
 prefix = "apps"
+
+
+

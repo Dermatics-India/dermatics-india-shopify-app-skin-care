@@ -1,76 +1,33 @@
-// import { HashRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { NavMenu } from "@shopify/app-bridge-react";
+import Routes from "./Routes";
 
-// import PolarisProvider from "./components/providers/PolarisProvider.jsx";
-// import QueryProvider from "./components/providers/QueryProvider.jsx";
-// import AppRoutes from "./Routes.jsx";
-
-// export default function App() {
-//   return (
-//     <PolarisProvider>
-//       <QueryProvider>
-
-//         {/* IMPORTANT: HashRouter works inside Shopify iframe */}
-//         <HashRouter>
-//           <AppRoutes />
-//         </HashRouter>
-
-//       </QueryProvider>
-//     </PolarisProvider>
-//   );
-// }
-
-import { HashRouter } from "react-router-dom";
-import { useEffect, useState } from "react";
-
-import PolarisProvider from "./components/providers/PolarisProvider.jsx";
-import QueryProvider from "./components/providers/QueryProvider.jsx";
-import AppRoutes from "./Routes.jsx";
-
-// Shopify App Bridge
-import createApp from "@shopify/app-bridge";
-import { getSessionToken } from "@shopify/app-bridge-utils";
+import { QueryProvider, PolarisProvider } from "./components";
 
 export default function App() {
-  const [sessionToken, setSessionToken] = useState("");
+  // Any .tsx or .jsx files in /pages will become a route
+  // See documentation for <Routes /> for more info
+  const pages = import.meta.glob("./pages/**/!(*.test.[jt]sx)*.([jt]sx)", {
+    eager: true,
+  });
+  const { t } = useTranslation();
 
-  // ----------------------------------------------------
-  // 1️⃣ Initialize App Bridge + Get Session JWT Token
-  // ----------------------------------------------------
-  useEffect(() => {
-    const host = new URLSearchParams(window.location.search).get("host");
-
-    if (!host) {
-      console.warn("⚠️ No host= query parameter found in URL");
-      return;
-    }
-
-    const appBridge = createApp({
-      apiKey: import.meta.env.VITE_SHOPIFY_API_KEY,
-      host,
-      forceRedirect: true,
-    });
-
-    getSessionToken(appBridge).then((token) => {
-      console.log("🔐 Shopify Session Token:", token);
-      setSessionToken(token);
-    });
-  }, []);
-
-  // ----------------------------------------------------
-  // 2️⃣ App Wrapper — NO UI here!
-  // ----------------------------------------------------
   return (
     <PolarisProvider>
-      <QueryProvider>
-        {/* Shopify requires HashRouter inside app bridge iframe */}
-        <HashRouter>
-          {/* Pass token to all pages */}
-          <AppRoutes sessionToken={sessionToken} />
-        </HashRouter>
-      </QueryProvider>
+      <BrowserRouter>
+        <QueryProvider>
+          <NavMenu>
+            <a href="/" rel="home">
+              {t("NavigationMenu.setupGuide")}
+            </a>
+            <a href="/customization">{t("NavigationMenu.customization")}</a>
+            <a href="/analytics">{t("NavigationMenu.analytics")}</a>
+            <a href="/plans">{t("NavigationMenu.plans")}</a>
+          </NavMenu>
+          <Routes pages={pages} />
+        </QueryProvider>
+      </BrowserRouter>
     </PolarisProvider>
   );
 }
-
-
-

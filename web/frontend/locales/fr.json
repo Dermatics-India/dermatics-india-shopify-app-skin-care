@@ -1,40 +1,40 @@
 {
-  "HomePage": {
-    "heading": "Bravo pour l’application Shopify que vous avez créée 🎉",
-    "learnMore": "Découvrez comment concevoir votre application dans <ShopifyTutorialLink>ce tutoriel Shopify</ShopifyTutorialLink> 📚",
-    "startPopulatingYourApp": "Vous souhaitez vous lancer ? Commencez à remplir votre application d’exemples de produits à afficher et tester dans votre boutique.",
-    "title": "Nom de l’application",
-    "trophyAltText": "Bravo pour l’application Shopify que vous avez créée",
-    "yourAppIsReadyToExplore": "Votre application est prête à être explorée ! Elle contient tout ce dont vous avez besoin pour vous lancer, y compris le <PolarisLink>système de design Polaris</PolarisLink>, la <AdminApiLink>Shopify Admin API</AdminApiLink> ainsi que la bibliothèque et les composants d’IU <AppBridgeLink>App Bridge</AppBridgeLink>."
-  },
   "NavigationMenu": {
-    "pageName": "Nom de la page"
+    "setupGuide": "Setup Guide",
+    "customization": "Customization",
+    "analytics": "Analytics",
+    "plans": "Plans"
   },
   "NotFound": {
-    "description": "Vérifiez l’URL et réessayez, ou utilisez la barre de recherche pour trouver ce qu’il vous faut.",
-    "heading": "Il n’y a aucune page à cette adresse"
+    "description": "Check the URL and try again, or use the search bar to find what you need.",
+    "heading": "There is no page at this address"
   },
-  "PageName": {
-    "body": "Corps",
-    "heading": "En-tête",
-    "primaryAction": "Action principale",
-    "secondaryAction": "Action secondaire",
-    "title": "Nom de la page"
-  },
-  "ProductsCard": {
-    "description": "Les exemples de produits sont créés avec un titre et un prix par défaut. Vous pouvez les supprimer à tout moment.",
-    "errorCreatingProductsToast": "Une erreur est survenue lors de la création des produits",
-    "populateProductsButton": {
-      "one": "Remplir {{count}} produit",
-      "other": "Remplir {{count}} produits",
-      "many": "Remplir {{count}} produits"
+  "SetupGuide": {
+    "title": "Welcome! Let's get your store ready",
+    "subtitle": "Complete these quick steps to start providing automated skin care routines to your customers.",
+    "progress": "{{count}} of 4 steps completed",
+    "steps": {
+      "step1": {
+        "title": "Enable App Embed",
+        "description": "Activate the Skin Analysis extension in your theme editor to display the widget on your storefront.",
+        "button": "Enable in Theme Editor"
+      },
+      "step2": {
+        "title": "Personnalisation",
+        "description": "Adaptez l'apparence et la convivialité du widget de soins de la peau à l'esthétique de votre boutique.",
+        "button": "Aller à la personnalisation"
+      },
+      "step3": {
+        "title": "Upload Branding",
+        "description": "Add your logo and brand colors to ensure a seamless experience for your customers.",
+        "button": "Add Branding"
+      },
+      "step4": {
+        "title": "Verify Product Mapping",
+        "description": "Match your catalog products to specific skin concerns and routine steps.",
+        "button": "Map Products"
+      }
     },
-    "productsCreatedToast": {
-      "one": "{{count}} produit créé !",
-      "other": "{{count}} produits créés !",
-      "many": "{{count}} produits créés !"
-    },
-    "title": "Compteur de produits",
-    "totalProductsHeading": "TOTAL DES PRODUITS"
+    "footer": "Need more help? Check out our <DocumentationLink>Setup Guide Documentation</DocumentationLink> or <SupportLink>Contact Support</SupportLink>."
   }
 }

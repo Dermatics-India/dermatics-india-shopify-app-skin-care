@@ -1,38 +1,40 @@
 {
-  "HomePage": {
-    "heading": "Nice work on building a Shopify app 🎉",
-    "learnMore": "Learn more about building out your app in <ShopifyTutorialLink>this Shopify tutorial</ShopifyTutorialLink> 📚",
-    "startPopulatingYourApp": "Ready to go? Start populating your app with some sample products to view and test in your store.",
-    "title": "App name",
-    "trophyAltText": "Nice work on building a Shopify app",
-    "yourAppIsReadyToExplore": "Your app is ready to explore! It contains everything you need to get started including the <PolarisLink>Polaris design system</PolarisLink>, <AdminApiLink>Shopify Admin API</AdminApiLink>, and <AppBridgeLink>App Bridge</AppBridgeLink> UI library and components."
-  },
   "NavigationMenu": {
-    "pageName": "Page name"
+    "setupGuide": "Setup Guide",
+    "customization": "Customization",
+    "analytics": "Analytics",
+    "plans": "Plans"
   },
   "NotFound": {
     "description": "Check the URL and try again, or use the search bar to find what you need.",
     "heading": "There is no page at this address"
   },
-  "PageName": {
-    "body": "Body",
-    "heading": "Heading",
-    "primaryAction": "Primary action",
-    "secondaryAction": "Secondary action",
-    "title": "Page name"
-  },
-  "ProductsCard": {
-    "description": "Sample products are created with a default title and price. You can remove them at any time.",
-    "errorCreatingProductsToast": "There was an error creating products",
-    "populateProductsButton": {
-      "one": "Populate {{count}} product",
-      "other": "Populate {{count}} products"
+  "SetupGuide": {
+    "title": "Welcome! Let's get your store ready",
+    "subtitle": "Complete these quick steps to start providing automated skin care routines to your customers.",
+    "progress": "{{count}} of 4 steps completed",
+    "steps": {
+      "step1": {
+        "title": "Enable App Embed",
+        "description": "Activate the Skin Analysis extension in your theme editor to display the widget on your storefront.",
+        "button": "Enable in Theme Editor"
+      },
+      "step2": {
+        "title": "Customization",
+        "description": "Tailor the look and feel of the skin care widget to match your store's aesthetic.",
+        "button": "Go to Customization"
+      },
+      "step3": {
+        "title": "Upload Branding",
+        "description": "Add your logo and brand colors to ensure a seamless experience for your customers.",
+        "button": "Add Branding"
+      },
+      "step4": {
+        "title": "Verify Product Mapping",
+        "description": "Match your catalog products to specific skin concerns and routine steps.",
+        "button": "Map Products"
+      }
     },
-    "productsCreatedToast": {
-      "one": "{{count}} product created!",
-      "other": "{{count}} products created!"
-    },
-    "title": "Product Counter",
-    "totalProductsHeading": "TOTAL PRODUCTS"
+    "footer": "Need more help? Check out our <DocumentationLink>Setup Guide Documentation</DocumentationLink> or <SupportLink>Contact Support</SupportLink>."
   }
 }

@@ -1,93 +1,69 @@
-// import { Routes, Route } from "react-router-dom";
-// import AppShell from "./components/AppShell";
-// import HomePage from "./pages/HomePage";
-// import Dashboard from "./pages/Dashboard";
-// import Pricing from "./pages/Pricing";
-// import Settings from "./pages/Settings";
-// import NotFound from "./pages/NotFound";
+import { Routes as ReactRouterRoutes, Route } from "react-router-dom";
 
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<AppShell />}>
-//         <Route index element={<HomePage />} />
-//         <Route path="dashboard" element={<Dashboard />} />
-//         <Route path="pricing" element={<Pricing />} />
-//         <Route path="settings" element={<Settings />} />
-//       </Route>
+/**
+ * File-based routing.
+ * @desc File-based routing that uses React Router under the hood.
+ * To create a new route create a new .jsx file in `/pages` with a default export.
+ *
+ * Some examples:
+ * * `/pages/index.jsx` matches `/`
+ * * `/pages/blog/[id].jsx` matches `/blog/123`
+ * * `/pages/[...catchAll].jsx` matches any URL not explicitly matched
+ *
+ * @param {object} pages value of import.meta.glob(). See https://vitejs.dev/guide/features.html#glob-import
+ *
+ * @return {Routes} `<Routes/>` from React Router, with a `<Route/>` for each file in `pages`
+ */
+export default function Routes({ pages }) {
+  const routes = useRoutes(pages);
+  const routeComponents = routes.map(({ path, component: Component }) => (
+    <Route key={path} path={path} element={<Component />} />
+  ));
 
-//       <Route path="*" element={<NotFound />} />
-//     </Routes>
-//   );
-// }
+  const NotFound = routes.find(({ path }) => path === "/notFound").component;
 
-// import { Routes, Route } from "react-router-dom";
-// import AppShell from "./components/AppShell";
-// import HomePage from "./pages/HomePage";
-// import Dashboard from "./pages/Dashboard";
-// import Pricing from "./pages/Pricing";
-// import Settings from "./pages/Settings";
-// import NotFound from "./pages/NotFound";
-
-// // ⭐ Add this import
-// import AIWidgetsPage from "./pages/AIWidgetsPage";
-// import SupportPage from "./pages/SupportPage";
-
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<AppShell />}>
-
-//         <Route index element={<HomePage />} />
-//         <Route path="dashboard" element={<Dashboard />} />
-//         <Route path="pricing" element={<Pricing />} />
-//         <Route path="settings" element={<Settings />} />
-
-//         {/* ⭐ New Route for AI Analyze Widgets */}
-//         <Route path="ai-widgets" element={<AIWidgetsPage />} />
-//         <Route path="support" element={<SupportPage />} />
-
-//       </Route>
-
-//       <Route path="*" element={<NotFound />} />
-//     </Routes>
-//   );
-// }
-
-import { Routes, Route } from "react-router-dom";
-import AppShell from "./components/AppShell";
-
-// Correct page imports
-import HomePage from "./pages/HomePage";
-import Dashboard from "./pages/Dashboard";
-import Pricing from "./pages/Pricing";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-
-// Your valid pages
-import AIWidgetsPage from "./pages/AIWidgetsPage";
-import SupportPage from "./pages/SupportPage";
-
-export default function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<AppShell />}>
-
-        <Route index element={<HomePage />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="pricing" element={<Pricing />} />
-        <Route path="settings" element={<Settings />} />
-        
-        {/* AI Widgets */}
-        <Route path="ai-widgets" element={<AIWidgetsPage />} />
-
-        {/* Support */}
-        <Route path="support" element={<SupportPage />} />
-
-      </Route>
-
-      {/* 404 fallback */}
+    <ReactRouterRoutes>
+      {routeComponents}
       <Route path="*" element={<NotFound />} />
-    </Routes>
+    </ReactRouterRoutes>
   );
+}
+
+function useRoutes(pages) {
+  const routes = Object.keys(pages)
+    .map((key) => {
+      let path = key
+        .replace("./pages", "")
+        .replace(/\.(t|j)sx?$/, "")
+        /**
+         * Replace /index with /
+         */
+        .replace(/\/index$/i, "/")
+        /**
+         * Only lowercase the first letter. This allows the developer to use camelCase
+         * dynamic paths while ensuring their standard routes are normalized to lowercase.
+         */
+        .replace(/\b[A-Z]/, (firstLetter) => firstLetter.toLowerCase())
+        /**
+         * Convert /[handle].jsx and /[...handle].jsx to /:handle.jsx for react-router-dom
+         */
+        .replace(/\[(?:[.]{3})?(\w+?)\]/g, (_match, param) => `:${param}`);
+
+      if (path.endsWith("/") && path !== "/") {
+        path = path.substring(0, path.length - 1);
+      }
+
+      if (!pages[key].default) {
+        console.warn(`${key} doesn't export a default React component`);
+      }
+
+      return {
+        path,
+        component: pages[key].default,
+      };
+    })
+    .filter((route) => route.component);
+
+  return routes;
 }

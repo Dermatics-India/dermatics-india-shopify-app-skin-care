@@ -1,38 +1,40 @@
 {
-  "HomePage": {
-    "heading": "Gute Arbeit beim Erstellen einer Shopify-App 🎉",
-    "learnMore": "Erhalte mehr Informationen zum Ausbau deiner App in <ShopifyTutorialLink>diesem Shopify-Tutorial</ShopifyTutorialLink> 📚",
-    "startPopulatingYourApp": "Bist du bereit? Stelle in deiner App einige Beispielprodukte bereit, um sie in deinem Shop anzuzeigen und zu testen.",
-    "title": "App-Name",
-    "trophyAltText": "Gute Arbeit beim Erstellen einer Shopify-App",
-    "yourAppIsReadyToExplore": "Deine App kann nun erkundet werden! Sie enthält alles, was du brauchst, um loszulegen: das <PolarisLink>Polaris Designsystem</PolarisLink>, die <AdminApiLink>Shopify Admin API</AdminApiLink> und die <AppBridgeLink>App Bridge</AppBridgeLink>-UI-Bibliothek sowie entsprechende Komponenten."
-  },
   "NavigationMenu": {
-    "pageName": "Seitenname"
+    "setupGuide": "Setup Guide",
+    "customization": "Customization",
+    "analytics": "Analytics",
+    "plans": "Plans"
   },
   "NotFound": {
-    "description": "Überprüfe die URL und versuche es erneut. Alternativ kannst du die Suchleiste verwenden, um zu finden, was du suchst.",
-    "heading": "Unter dieser Adresse gibt es keine Seite"
+    "description": "Check the URL and try again, or use the search bar to find what you need.",
+    "heading": "There is no page at this address"
   },
-  "PageName": {
-    "body": "Nachricht",
-    "heading": "Überschrift",
-    "primaryAction": "Primäre Aktion",
-    "secondaryAction": "Sekundäre Aktion",
-    "title": "Seitenname"
-  },
-  "ProductsCard": {
-    "description": "Beispielprodukte werden mit einem Standardtitel und -preis erstellt. Du kannst sie jederzeit entfernen.",
-    "errorCreatingProductsToast": "Beim Erstellen von Produkten ist ein Fehler aufgetreten",
-    "populateProductsButton": {
-      "one": "{{count}} Produkt bereitstellen",
-      "other": "{{count}} Produkte bereitstellen"
+  "SetupGuide": {
+    "title": "Welcome! Let's get your store ready",
+    "subtitle": "Complete these quick steps to start providing automated skin care routines to your customers.",
+    "progress": "{{count}} of 4 steps completed",
+    "steps": {
+      "step1": {
+        "title": "Enable App Embed",
+        "description": "Activate the Skin Analysis extension in your theme editor to display the widget on your storefront.",
+        "button": "Enable in Theme Editor"
+      },
+      "step2": {
+        "title": "Anpassung",
+        "description": "Passen Sie das Aussehen und das Gefühl des Hautpflege-Widgets an Ihre Store-Ästhetik an.",
+        "button": "Zur Anpassung gehen"
+      },
+      "step3": {
+        "title": "Upload Branding",
+        "description": "Add your logo and brand colors to ensure a seamless experience for your customers.",
+        "button": "Add Branding"
+      },
+      "step4": {
+        "title": "Verify Product Mapping",
+        "description": "Match your catalog products to specific skin concerns and routine steps.",
+        "button": "Map Products"
+      }
     },
-    "productsCreatedToast": {
-      "one": "{{count}} Produkt erstellt!",
-      "other": "{{count}} Produkte erstellt!"
-    },
-    "title": "Produktzähler",
-    "totalProductsHeading": "PRODUKTE INSGESAMT"
+    "footer": "Need more help? Check out our <DocumentationLink>Setup Guide Documentation</DocumentationLink> or <SupportLink>Contact Support</SupportLink>."
   }
 }
