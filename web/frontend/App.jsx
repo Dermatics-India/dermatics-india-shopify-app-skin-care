@@ -21,7 +21,7 @@ export default function App() {
             <a href="/" rel="home">
               {t("NavigationMenu.setupGuide")}
             </a>
-            <a href="/customization">{t("NavigationMenu.customization")}</a>
+            <a href="/customization">{t("NavigationMenu.customization.title")}</a>
             <a href="/analytics">{t("NavigationMenu.analytics")}</a>
             <a href="/plans">{t("NavigationMenu.plans")}</a>
           </NavMenu>

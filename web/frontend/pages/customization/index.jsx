@@ -1,0 +1,70 @@
+import { 
+  Page, 
+  Card, 
+  Layout, 
+  BlockStack, 
+  InlineStack, 
+  Text, 
+  Button, 
+  Box,
+  Image
+} from '@shopify/polaris';
+import { TitleBar } from "@shopify/app-bridge-react";
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+
+// Components 
+import { CategoryCard } from '../../components/customization';
+
+// Assets
+import SkinCareIcon from "../../assets/skincare_cat.png";
+import HairCareIcon from "../../assets/haircare_cat.png";
+
+const Customization = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  return (
+    <Page narrowWidth>
+      <TitleBar title={t("NavigationMenu.customization.title")} />
+      
+      <BlockStack gap="400">
+        <Box paddingBlockEnd="400">
+          <BlockStack gap="200">
+            <Text variant="headingLg" as="h2">
+              {t("Customization.title")}
+            </Text>
+            <Text as="p" tone="subdued">
+              {t("Customization.subtitle")}
+            </Text>
+          </BlockStack>
+        </Box>
+
+        <Layout>
+          <Layout.Section variant="oneThird">
+            <CategoryCard 
+              title={t("Customization.categories.skinCare.title")}
+              description={t("Customization.categories.skinCare.description")}
+              buttonText={t("Customization.categories.skinCare.button")}
+              image={SkinCareIcon}
+              onAction={() => navigate("/customization/skin")}
+            />
+            
+          </Layout.Section>
+
+          <Layout.Section variant="oneThird">
+            <CategoryCard 
+              title={t("Customization.categories.hairCare.title")}
+              description={t("Customization.categories.hairCare.description")}
+              buttonText={t("Customization.categories.hairCare.button")}
+              image={HairCareIcon}
+              onAction={() => navigate("/customization/hair")}
+            />
+          </Layout.Section>
+        </Layout>
+      </BlockStack>
+    </Page>      
+  );
+};
+
+export default Customization;

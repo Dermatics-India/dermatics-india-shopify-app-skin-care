@@ -35,7 +35,7 @@ const billingConfig = {
 
 const shopify = shopifyApp({
   api: {
-    apiVersion: "2026-01",
+    apiVersion: "2024-10",
     restResources,
     billing: billingConfig, 
     // Enabled flags to ensure compatibility with 2025-07 requirements

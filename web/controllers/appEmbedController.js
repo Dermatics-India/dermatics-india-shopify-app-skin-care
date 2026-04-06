@@ -9,9 +9,11 @@ export const getAppEmbedStatus = async (req, res) => {
     const session = res.locals.shopify.session;
 
     // 1. Get all themes and find the 'main' (published) theme
-    const themes = await shopify.api.rest.Theme.all({
+    const response = await shopify.api.rest.Theme.all({
       session: session,
     });
+
+    const themes = Array.isArray(response) ? response : (response?.data || []);
     const mainTheme = themes.find((theme) => theme.role === "main");
 
     if (!mainTheme) {
@@ -19,11 +21,14 @@ export const getAppEmbedStatus = async (req, res) => {
     }
 
     // 2. Fetch the 'config/settings_data.json' asset
-    const assets = await shopify.api.rest.Asset.all({
+    const responseAssets = await shopify.api.rest.Asset.all({
       session: session,
       theme_id: mainTheme.id,
       asset: { key: "config/settings_data.json" },
     });
+
+
+    const assets = Array.isArray(responseAssets) ? responseAssets : (responseAssets?.data || []);
 
     if (!assets || assets.length === 0) {
       return res.status(404).send({ isEnabled: false, error: "Settings file not found" });

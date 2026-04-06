@@ -7,7 +7,7 @@ const router = express.Router();
 /**
  * App Embed Status
  */
-router.get("/app-embed-status", getAppEmbedStatus);
+
 
 /**
  * Product Management

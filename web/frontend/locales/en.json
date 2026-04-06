@@ -1,7 +1,11 @@
 {
   "NavigationMenu": {
     "setupGuide": "Setup Guide",
-    "customization": "Customization",
+    "customization": {
+      "title": "Customization",
+      "skin": "Skin Care",
+      "hair": "Hair Care"
+    },
     "analytics": "Analytics",
     "plans": "Plans"
   },
@@ -36,5 +40,21 @@
       }
     },
     "footer": "Need more help? Check out our <DocumentationLink>Setup Guide Documentation</DocumentationLink> or <SupportLink>Contact Support</SupportLink>."
+  },
+  "Customization": {
+    "title": "Customize Your Widget",
+    "subtitle": "Select a category to tailor the analysis and product recommendations for your customers.",
+    "categories": {
+      "skinCare": {
+        "title": "Skin Care",
+        "description": "Configure the skin analysis questions, visual results, and personalized product recommendations.",
+        "button": "Customize Skin Care"
+      },
+      "hairCare": {
+        "title": "Hair Care",
+        "description": "Tailor the hair assessment questionnaire and treatment logic for various hair types and concerns.",
+        "button": "Customize Hair Care"
+      }
+    }
   }
 }

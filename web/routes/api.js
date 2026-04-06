@@ -2,6 +2,7 @@ import express from "express";
 import shopify from "../shopify.js";
 import adminRoutes from "./admin.js";
 import publicRoutes from "./public.js";
+import { getAppEmbedStatus } from "../controllers/appEmbedController.js";
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ const router = express.Router();
  * Path: /api/admin/*
  */
 router.use("/admin", shopify.validateAuthenticatedSession(), adminRoutes);
+router.get("/app-embed-status", shopify.validateAuthenticatedSession(), getAppEmbedStatus);
 
 /**
  * Public/User API Routes

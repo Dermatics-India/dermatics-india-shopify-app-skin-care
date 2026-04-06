@@ -59,7 +59,7 @@ app.get(
   async (req, res, next) => {
     try {
       const session = res.locals.shopify?.session;
-      
+
       if (session) {
         await Shop.findOneAndUpdate(
           { shop: session.shop },
@@ -101,7 +101,7 @@ app.use(serveStatic(STATIC_PATH, { index: false }));
 app.use("/*", shopify.ensureInstalledOnShop(), async (req, res, _next) => {
   try {
     const session = res.locals.shopify?.session;
-    
+
     if (session) {
       console.log(`📡 [SESSION] Already have a valid session for: ${session.shop}. (Auth callback will be skipped)`);
       const updatedShop = await Shop.findOneAndUpdate(
@@ -127,10 +127,19 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (req, res, _next) => {
     console.error("❌ Database Sync Error:", err.message);
   }
 
+  const htmlFile = join(STATIC_PATH, "index.html");
+  let html = fs.readFileSync(htmlFile, "utf8");
+
+  if (process.env.NODE_ENV !== "production") {
+    html = html
+      .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
+      .replace("%VITE_API_URL%", process.env.SHOPIFY_APP_URL || "");
+  }
+
   return res
     .status(200)
     .set("Content-Type", "text/html")
-    .send(fs.readFileSync(join(STATIC_PATH, "index.html")));
+    .send(html);
 });
 
 app.listen(PORT, () => {

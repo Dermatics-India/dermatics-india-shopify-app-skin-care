@@ -1,48 +1,103 @@
-import { Card, InlineStack, Text, BlockStack, Box, Icon, Button } from "@shopify/polaris";
-import { CheckCircleIcon } from "@shopify/polaris-icons";
+import { 
+  InlineStack, 
+  Text, 
+  BlockStack, 
+  Box, 
+  Icon, 
+  Button,
+  Collapsible,
+  Checkbox
+} from "@shopify/polaris";
+import { 
+  ChevronDownIcon,
+  CheckCircleIcon,
+  PlusCircleIcon
+} from "@shopify/polaris-icons";
 
-
-function SetupStep({ number, title, description, buttonText, icon, isCompleted, onAction }) {
+function SetupStep({ 
+  title, 
+  description, 
+  buttonText, 
+  isCompleted, 
+  onAction, 
+  onToggleComplete,
+  isExpanded, 
+  onToggleExpand,
+  illustration 
+}) {
   return (
-    <Card padding="400">
-      <InlineStack gap="400" blockAlign="start" wrap={false}>
-        <Box
-          background={isCompleted ? "bg-fill-success-secondary" : "bg-fill-info-secondary"}
-          padding="200"
-          borderRadius="200"
-        >
-          <Icon source={icon} tone={isCompleted ? "success" : "info"} />
-        </Box>
-        
-        <BlockStack gap="200" flex="1">
-          <InlineStack align="space-between">
-            <Text as="h3" variant="headingMd" fontWeight={isCompleted ? "medium" : "bold"}>
-              {number}. {title}
-            </Text>
-            {isCompleted && (
-              <InlineStack gap="100" blockAlign="center">
-                <Icon source={CheckCircleIcon} tone="success" />
-                <Text as="span" variant="bodySm" tone="success">Done</Text>
-              </InlineStack>
-            )}
-          </InlineStack>
-          
-          <Text as="p" variant="bodyMd" tone="subdued">
-            {description}
-          </Text>
-          
-          {!isCompleted && (
-            <Box paddingBlockStart="200">
-              <InlineStack gap="200">
-                <Button variant="primary" onClick={onAction}>
-                  {buttonText}
-                </Button>
-              </InlineStack>
+    <Box 
+      paddingBlockStart="400" 
+      paddingBlockEnd="400" 
+    >
+      <BlockStack gap="400">
+        <InlineStack align="space-between" blockAlign="center" wrap={false}>
+          <InlineStack gap="300" blockAlign="center">
+            <Icon source={isCompleted ? CheckCircleIcon : PlusCircleIcon} tone= { isCompleted ? "success" : "base" } />
+            {/* <Checkbox
+              label=""
+              checked={isCompleted}
+              onChange={onToggleComplete}
+            /> */}
+            <Box onClick={onToggleExpand} style={{ cursor: 'pointer' }}>
+              <Text 
+                variant="bodyMd" 
+                as="p" 
+                fontWeight={isExpanded ? "bold" : "medium"}
+                tone={isCompleted ? "subdued" : "default"}
+              >
+                {title}
+              </Text>
             </Box>
-          )}
-        </BlockStack>
-      </InlineStack>
-    </Card>
+          </InlineStack>
+          <Box 
+            onClick={onToggleExpand}
+            style={{ 
+              cursor: 'pointer',
+              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+              transition: 'transform 200ms ease-in-out' 
+            }}
+          >
+            <Icon source={ChevronDownIcon} tone="subdued" />
+          </Box>
+        </InlineStack>
+
+        <Collapsible 
+          open={isExpanded} 
+          id={`setup-step-${title.replace(/\s+/g, '-').toLowerCase()}`}
+        >
+          <Box 
+            padding="400" 
+            background="bg-surface-secondary" 
+            borderRadius="200"
+          >
+            <InlineStack align="space-between" blockAlign="center" wrap={false} gap="400">
+              <BlockStack gap="400" flex="1">
+                <Text variant="bodyMd" tone="subdued">
+                  {description}
+                </Text>
+                {buttonText && (
+                  <InlineStack gap="300">
+                    <Button variant="primary" onClick={onAction}>
+                      {buttonText}
+                    </Button>
+                  </InlineStack>
+                )}
+              </BlockStack>
+              {illustration && (
+                <Box maxWidth="100px">
+                  <img 
+                    src={illustration} 
+                    alt="" 
+                    style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '8px' }} 
+                  />
+                </Box>
+              )}
+            </InlineStack>
+          </Box>
+        </Collapsible>
+      </BlockStack>
+    </Box>
   );
 }
 
