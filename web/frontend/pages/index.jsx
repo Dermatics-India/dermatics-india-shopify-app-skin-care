@@ -13,7 +13,7 @@ import {
   ChevronUpIcon,
   ChevronDownIcon  
 } from "@shopify/polaris-icons";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ import React from "react";
 
 // components 
 import { SetupStep } from "../components/setupguide";
+
 
 // Assets
 import Step1Img from "../assets/step1.png";
@@ -115,8 +116,6 @@ export default function HomePage() {
 
   return (
     <Page narrowWidth>
-      <TitleBar title={t("NavigationMenu.setupGuide")} />
-      
       <Card padding="0">
         <Box padding="400">
           <BlockStack gap="400">

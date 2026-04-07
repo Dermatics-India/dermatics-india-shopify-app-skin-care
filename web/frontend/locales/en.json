@@ -1,4 +1,15 @@
 {
+  "cmn": {
+    "save": "Save",
+    "discard": "Discard",
+    "normal": "Normal",
+    "bold": "Bold",
+    "bolder": "Bolder",
+    "sansSerif": "Sans-Serif",
+    "serif": "Serif",
+    "monospace": "Monospace",
+    "loading": "Loading..."
+  },
   "NavigationMenu": {
     "setupGuide": "Setup Guide",
     "customization": {
@@ -42,9 +53,14 @@
     "footer": "Need more help? Check out our <DocumentationLink>Setup Guide Documentation</DocumentationLink> or <SupportLink>Contact Support</SupportLink>."
   },
   "Customization": {
-    "title": "Customize Your Widget",
-    "subtitle": "Select a category to tailor the analysis and product recommendations for your customers.",
+    "title": "Customize",
+    "subtitle": "Customize your widget",
     "categories": {
+      "customize": {
+        "title": "Customize Widget",
+        "description": "Configure the skin analysis questions, visual results, and personalized product recommendations.",
+        "button": "Customize"
+      },
       "skinCare": {
         "title": "Skin Care",
         "description": "Configure the skin analysis questions, visual results, and personalized product recommendations.",
@@ -54,6 +70,54 @@
         "title": "Hair Care",
         "description": "Tailor the hair assessment questionnaire and treatment logic for various hair types and concerns.",
         "button": "Customize Hair Care"
+      }
+    },
+    "settings": {
+      "titleWidget": "Customize Widget",
+      "titleSkin": "Customize Skin Care Widget",
+      "titleHair": "Customize Hair Care Widget",
+      "back": "Back",
+      "save": "Save Configuration",
+      "success": "Configuration saved successfully!",
+      "tabs": {
+        "widget": "Widget Settings",
+        "drawer": "Drawer Settings"
+      },
+      "widget": {
+        "displayType": "Display Type",
+        "iconOnly": "Icon Only",
+        "textLabel": "Text Label",
+        "bgColor": "Background",
+        "textColor": "Text/Icon Color",
+        "iconUrl": "Icon URL",
+        "iconUrlHelp": "URL to an image for your widget icon.",
+        "buttonText": "Button Text",
+        "fontSize": "Font Size",
+        "fontWeight": "Font Weight",
+        "paddingX": "Horizontal Padding",
+        "paddingY": "Vertical Padding",
+        "radius": "Border Radius"
+      },
+      "drawer": {
+        "general": "General",
+        "drawerBg": "Drawer Background Color",
+        "header": "Header",
+        "fontFamily": "Font Family",
+        "fontSize": "Font Size",
+        "headerBg": "Background Color",
+        "headerColor": "Text Color",
+        "bubbles": "Chat Bubbles",
+        "bubbleBg": "Background Color",
+        "bubbleColor": "Text Color",
+        "fontWeight": "Font Weight",
+        "bubbleRadius": "Bubble Border Radius"
+      },
+      "preview": {
+        "title": "Storefront Preview",
+        "description": "Interact with the widget to see the drawer animations and styles.",
+        "headerSkin": "Skin Analysis",
+        "headerHair": "Hair Analysis",
+        "mockMessage": "Hello! Welcome to your digital consultation. Let's get started!"
       }
     }
   }

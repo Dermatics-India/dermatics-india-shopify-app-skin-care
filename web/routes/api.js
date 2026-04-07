@@ -1,8 +1,10 @@
 import express from "express";
 import shopify from "../shopify.js";
-import adminRoutes from "./admin.js";
 import publicRoutes from "./public.js";
+
+// controllers 
 import { getAppEmbedStatus } from "../controllers/appEmbedController.js";
+import { getSettings, updateSettings } from '../controllers/settingsController.js'
 
 const router = express.Router();
 
@@ -11,8 +13,13 @@ const router = express.Router();
  * These require a valid Shopify session (embedded app)
  * Path: /api/admin/*
  */
-router.use("/admin", shopify.validateAuthenticatedSession(), adminRoutes);
 router.get("/app-embed-status", shopify.validateAuthenticatedSession(), getAppEmbedStatus);
+
+// GET API 
+router.get("/settings", shopify.validateAuthenticatedSession(), getSettings);
+
+// POST /api/settings
+router.post("/settings", shopify.validateAuthenticatedSession(), updateSettings);
 
 /**
  * Public/User API Routes

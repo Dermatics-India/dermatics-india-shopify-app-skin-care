@@ -19,8 +19,9 @@ import shopify from "./shopify.js";
 import PrivacyWebhookHandlers from "./privacy.js";
 import { connectDB } from './server.js'
 import Shop from "./models/Shop.js";
-
 import fs from "fs";
+
+// Routes 
 import apiRoutes from "./routes/api.js";
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT || "3000", 10);

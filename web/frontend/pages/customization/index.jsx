@@ -1,15 +1,10 @@
 import { 
   Page, 
-  Card, 
   Layout, 
   BlockStack, 
-  InlineStack, 
   Text, 
-  Button, 
-  Box,
-  Image
+  Box
 } from '@shopify/polaris';
-import { TitleBar } from "@shopify/app-bridge-react";
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,14 +14,16 @@ import { CategoryCard } from '../../components/customization';
 // Assets
 import SkinCareIcon from "../../assets/skincare_cat.png";
 import HairCareIcon from "../../assets/haircare_cat.png";
+// import customizeIcon from '../../assets/customize.png'
 
 const Customization = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
-    <Page narrowWidth>
-      <TitleBar title={t("NavigationMenu.customization.title")} />
+    <Page 
+      narrowWidth
+    >
       
       <BlockStack gap="400">
         <Box paddingBlockEnd="400">
@@ -41,6 +38,16 @@ const Customization = () => {
         </Box>
 
         <Layout>
+          {/* <Layout.Section variant="oneThird">
+            <CategoryCard 
+              title={t("Customization.categories.customize.title")}
+              description={t("Customization.categories.customize.description")}
+              buttonText={t("Customization.categories.customize.button")}
+              image={customizeIcon}
+              onAction={() => navigate("/customization/customize")}
+            />
+          </Layout.Section> */}
+
           <Layout.Section variant="oneThird">
             <CategoryCard 
               title={t("Customization.categories.skinCare.title")}
@@ -49,7 +56,6 @@ const Customization = () => {
               image={SkinCareIcon}
               onAction={() => navigate("/customization/skin")}
             />
-            
           </Layout.Section>
 
           <Layout.Section variant="oneThird">

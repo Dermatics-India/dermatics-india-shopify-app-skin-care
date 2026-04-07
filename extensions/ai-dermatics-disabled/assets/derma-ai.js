@@ -122,7 +122,6 @@ async function startSession() {
   
   // 1. Check if we are on the Full Page Proxy
   const isFullPage = !!document.getElementById("derma-full-page-container");
-  debugger
 
   if (!isFullPage) {
     // ONLY create and open drawer if we are NOT on the full page

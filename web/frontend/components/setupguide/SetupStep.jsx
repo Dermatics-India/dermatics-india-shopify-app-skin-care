@@ -6,7 +6,6 @@ import {
   Icon, 
   Button,
   Collapsible,
-  Checkbox
 } from "@shopify/polaris";
 import { 
   ChevronDownIcon,
@@ -34,11 +33,6 @@ function SetupStep({
         <InlineStack align="space-between" blockAlign="center" wrap={false}>
           <InlineStack gap="300" blockAlign="center">
             <Icon source={isCompleted ? CheckCircleIcon : PlusCircleIcon} tone= { isCompleted ? "success" : "base" } />
-            {/* <Checkbox
-              label=""
-              checked={isCompleted}
-              onChange={onToggleComplete}
-            /> */}
             <Box onClick={onToggleExpand} style={{ cursor: 'pointer' }}>
               <Text 
                 variant="bodyMd" 

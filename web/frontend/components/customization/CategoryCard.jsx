@@ -39,7 +39,7 @@ export function CategoryCard({ title, description, buttonText, image, onAction }
           </Text>
         </BlockStack>
         <InlineStack align="end">
-          <Button variant="primary" onClick={onAction}>
+          <Button variant="secondary" onClick={onAction}>
             {buttonText}
           </Button>
         </InlineStack>
