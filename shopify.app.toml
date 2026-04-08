@@ -25,9 +25,11 @@ use_legacy_install_flow = false
 redirect_urls = [ "https://example.com/api/auth/callback" ]
 
 [app_proxy]
-url = "https://app.dermatics.in/api/proxy"
+url = "https://example.com/api/proxy"
 subpath = "derma-advisor"
 prefix = "apps"
+
+# https://app.dermatics.in
 
 
 

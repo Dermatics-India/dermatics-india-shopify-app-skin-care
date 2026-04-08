@@ -41,27 +41,27 @@ export const DrawerSettings = ({ data, onChange } ) => {
             <Select
               label={t("Customization.settings.drawer.fontFamily")}
               options={fontOptions}
-              value={data.drawer.header.font}
-              onChange={(val) => onChange("header", "font", val)}
+              value={data.drawer.header.fontFamily}
+              onChange={(val) => onChange("header", "fontFamily", val)}
             />
             <RangeSlider
               label={t("Customization.settings.drawer.fontSize")}
               min={12}
               max={32}
-              value={data.drawer.header.size}
-              onChange={(val) => onChange("header", "size", val)}
+              value={data.drawer.header.fontSize}
+              onChange={(val) => onChange("header", "fontSize", val)}
               output
             />
 
             <ColorInput
               label={t("Customization.settings.drawer.headerBg")}
-              value={data.drawer.header.bg}
-              onChange={(val) => onChange("header", "bg", val)}
+              value={data.drawer.header.bgColor}
+              onChange={(val) => onChange("header", "bgColor", val)}
             />
             <ColorInput
               label={t("Customization.settings.drawer.headerColor")}
-              value={data.drawer.header.color}
-              onChange={(val) => onChange("header", "color", val)}
+              value={data.drawer.header.textColor}
+              onChange={(val) => onChange("header", "textColor", val)}
             />
           </BlockStack>
         </Box>

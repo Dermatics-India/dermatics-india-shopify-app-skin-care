@@ -1,382 +1,625 @@
-console.log("🔥 Derma AI Wizard Loaded");
+/**
+ * Generic API Handler for JSON and Multipart requests
+ */
+class ApiHandler {
+  constructor(apiURL) {
+    // this.apiURL = apiURL.replace(/\/$/, ""); // Remove trailing slash if exists
+  }
 
-/* ============================================================
-   BASE CONFIG
-============================================================ */
-const BASE_URL = "https://app.dermatics.in";
-const SESSION_START_URL = `${BASE_URL}/api/session/start`;
-const FLOW_SUBMIT_URL = `${BASE_URL}/api/flow/submit`;
-const IMAGE_UPLOAD_URL = `${BASE_URL}/api/flow/upload-image`;
+  /**
+   * Standardized Response Handler
+   */
+  async #handleResponse(res) {
+    const isJson = res.headers.get("content-type")?.includes("application/json");
+    const data = isJson ? await res.json().catch(() => ({})) : {};
 
-let DERMA_SESSION_ID = null;
-let CURRENT_STEP = null;
-let ACTIVE_FLOW = "skin";
-let IS_SUBMITTING = false;
+    if (!res.ok) {
+      return { 
+        error: true, 
+        status: res.status, 
+        message: data.message || "Request failed",
+        ...data 
+      };
+    }
+    return data;
+  }
 
-/* ============================================================
-   FLOW CONFIG
-============================================================ */
-const FLOW_CONFIG = {
-  skin: {
-    flowType: "skin_flow",
-    title: "AI Skin Advisor",
-    welcome: "👋 Hello! I'm your Dermatics AI Skincare Assistant.",
-  },
-  hair: {
-    flowType: "hair_flow",
-    title: "AI Hair Advisor",
-    welcome: "👋 Hi! I'm your Dermatics AI Hair Assistant.",
-  },
-};
+  /**
+   * GET Request with Query Params
+   */
+  async get(url, params = {}) {
+    try {
+      const query = Object.keys(params).length 
+        ? `?${new URLSearchParams(params)}` 
+        : "";
 
-/* ============================================================
-   CHAT STATE
-============================================================ */
-let CHAT_TIMELINE = [];
+      const res = await fetch(`${url}${query}`, {
+        method: "GET",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json" 
+        }
+      });
 
-const escapeHtml = (str) =>
-  str == null
-    ? ""
-    : String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+      return await this.#handleResponse(res);
+    } catch (e) {
+      return { error: true, message: e.message };
+    }
+  }
 
-/* ============================================================
-   CHAT RENDER
-============================================================ */
-function renderChatUI() {
-  const screen = document.getElementById("derma-ai-screen");
-  if (!screen) return;
+  /**
+   * POST Request (JSON or Multipart)
+   */
+  async post(url, payload, isMultipart = false) {
+    try {
+      const options = {
+        method: "POST",
+        body: isMultipart ? payload : JSON.stringify(payload),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json" 
+        }
+      };
 
-  screen.innerHTML = CHAT_TIMELINE.map((m) => {
-    if (m.type === "bot")
-      return `<div class="chat-row bot"><div class="bubble bot-bubble">${m.text}</div></div>`;
-    if (m.type === "user")
-      return `<div class="chat-row user"><div class="bubble user-bubble">${m.text}</div></div>`;
-    if (m.type === "ui") return `<div class="chat-ui-block">${m.html}</div>`;
-    return "";
-  }).join("");
+      if (!isMultipart) {
+        options.headers["Content-Type"] = "application/json";
+      }
 
-  screen.scrollTop = screen.scrollHeight;
+      const res = await fetch(url, options);
+      return await this.#handleResponse(res);
+    } catch (e) {
+      return { error: true, message: e.message };
+    }
+  }
 }
 
-const addBot = (t) =>
-  t && (CHAT_TIMELINE.push({ type: "bot", text: escapeHtml(t) }), renderChatUI());
-const addUser = (t) =>
-  (CHAT_TIMELINE.push({ type: "user", text: escapeHtml(t) }), renderChatUI());
-const addUI = (h) =>
-  (CHAT_TIMELINE.push({ type: "ui", html: h }), renderChatUI());
+/**
+ * DermaAIWizard — production-ready dermatology assessment flow.
+ * UI rendering, API calls, and Shopify cart are encapsulated on the instance.
+ */
+class DermaAIWizard {
+  static defaultFlowConfig() {
+    return {
+      skin: {
+        flowType: "skin_flow",
+        title: "AI Skin Advisor",
+        welcome: "👋 Hello! I'm your Dermatics AI Skincare Assistant.",
+      },
+      hair: {
+        flowType: "hair_flow",
+        title: "AI Hair Advisor",
+        welcome: "👋 Hi! I'm your Dermatics AI Hair Assistant.",
+      },
+    };
+  }
 
-/* ============================================================
-   DRAWER
-============================================================ */
-function createDrawer() {
-  if (document.getElementById("derma-ai-drawer")) return;
+  constructor(config = {}) {
+    this.baseUrl = config.baseUrl;
+    this.proxy = config.proxy || "/apps/derma-advisor";  // Enable it While using Proxy 
+    this.endpoints = {
+      sessionStart: `${this.baseUrl}/api/session/start`,
+      flowSubmit: `${this.baseUrl}/api/flow/submit`,
+      imageUpload: `${this.baseUrl}/api/flow/upload-image`,
+      settings: `${this.proxy}/widget-settings`,
+    };
 
-  const d = document.createElement("div");
-  d.id = "derma-ai-drawer";
-  d.innerHTML = `
-    <div class="derma-ai-drawer-header">
-      <span>AI Skin & Hair Advisor</span>
-      <span class="wizard-close">&times;</span>
-    </div>
-    <div id="derma-ai-screen" class="derma-ai-chat-screen"></div>
-  `;
-  document.body.appendChild(d);
+    this.api = new ApiHandler();
 
-  d.querySelector(".wizard-close").onclick = () =>
-    d.classList.remove("open");
-}
+    this.flowConfig = DermaAIWizard.mergeFlowConfig(
+      DermaAIWizard.defaultFlowConfig(),
+      config.flowConfig || {}
+    );
 
-function openDrawer() {
-  createDrawer();
-  document.getElementById("derma-ai-drawer").classList.add("open");
-}
+    this.state = {
+      sessionId: null,
+      currentStep: null,
+      activeFlow: "skin",
+      isSubmitting: false,
+      timeline: [],
+    };
 
-/* ============================================================
-   API
-============================================================ */
-async function postJSON(url, payload, multipart = false) {
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: multipart ? undefined : { "Content-Type": "application/json" },
-      body: multipart ? payload : JSON.stringify(payload),
+    this.uiSettings = {};
+
+    /** Cached once at construction; full-page embeds suppress the floating launcher */
+    this.isFullPage = !!document.getElementById("derma-full-page-container");
+
+    this.ready = this._initLauncher();
+  }
+
+  static mergeFlowConfig(base, override) {
+    const out = { ...base };
+    for (const key of Object.keys(override)) {
+      out[key] = { ...(base[key] || {}), ...override[key] };
+    }
+    return out;
+  }
+
+  // ------ Reusable --------
+  _applyDynamicStyles(el, styleObj) {
+    if (!el || !styleObj) return;
+
+    const styles = {
+      backgroundColor: styleObj.bgColor || styleObj.bg,
+      color: styleObj.textColor || styleObj.color,
+      fontSize: styleObj.fontSize ? `${styleObj.fontSize}px` : (styleObj.size ? `${styleObj.size}px` : ""),
+      fontWeight: styleObj.fontWeight || 'normal',
+      borderRadius: styleObj.radius ? `${styleObj.radius}px` : '',
+      padding: (styleObj.paddingY && styleObj.paddingX) ? `${styleObj.paddingY}px ${styleObj.paddingX}px` : '',
+      fontFamily: styleObj.fontFamily || styleObj.font || "inherit"
+    };
+
+    Object.assign(el.style, styles);
+  }
+  
+
+  /* ---------- Full page proxy: suppress floating launcher ---------- */
+
+ async _initLauncher() {
+    const settings = await this.getSettings();
+
+    // console.log("ui settings", settings);
+    // console.log("isFullPage", this.isFullPage);
+
+    if (this.isFullPage) {
+      console.log("Full-page proxy detected: floating launcher suppressed.");
+      return;
+    }
+    if (document.getElementById("derma-ai-launcher")) return;
+
+    const config = settings.widget
+    const btn = document.createElement("div");
+    btn.id = "derma-ai-launcher";
+    btn.className = "derma-ai-launcher";
+
+    // Handle Icon vs Text display
+    if (config.displayType === "icon" && config.iconUrl) {
+      btn.innerHTML = `<img src="${config.iconUrl}" style="width:24px;height:24px;" alt="icon" />`;
+    } else {
+      btn.textContent = config.buttonText || "Analyze Skin";
+    }
+    this._applyDynamicStyles(btn, config);
+    // btn.style.cssText =  
+      // "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
+    btn.addEventListener("click", () => this.startSession());
+    document.body.appendChild(btn);
+  }
+
+  /* ---------- API Calls ---------- */
+  async getSettings() {
+    const res = await this.api.get(this.endpoints.settings);
+    if (res?.error) {
+      console.error("DermaAIWizard API error", res);
+      this.uiSettings = { drawer: {}, widget: {} };
+      return this.uiSettings;
+    }
+    const dataObj = {
+      drawer: res?.data?.drawer || {},
+      widget: res?.data?.widget || {}
+    };
+    
+    console.log("settings:::response", dataObj);
+    this.uiSettings = dataObj;
+    return dataObj;
+  }
+
+  /* ---------- DOM: drawer ---------- */
+
+  createDrawer() {
+    if (document.getElementById("derma-ai-drawer")) return;
+
+    const config = this.uiSettings.drawer;
+    const drawer = document.createElement("div");
+    drawer.id = "derma-ai-drawer";
+
+    // Apply Main Drawer Background
+    drawer.style.backgroundColor = config.bgColor || "#ffffff";
+
+    // Drawer header Ele
+    drawer.innerHTML = `
+      <div class="derma-ai-drawer-header" id="derma-drawer-header">
+        <span id="derma-ai-header-title">AI Skin & Hair Advisor</span>
+        <span class="wizard-close" role="button" aria-label="Close">&times;</span>
+      </div>
+      <div id="derma-ai-screen" class="derma-ai-chat-screen"></div>
+    `;
+    document.body.appendChild(drawer);
+
+    // Apply styles to the Header element
+    const headerEl = drawer.querySelector("#derma-drawer-header");
+    this._applyDynamicStyles(headerEl, config.header);
+
+    drawer.querySelector(".wizard-close").addEventListener("click", () => {
+      drawer.classList.remove("open");
     });
-    return await res.json();
-  } catch (e) {
-    console.error("❌ API ERROR", e);
-    return { error: true };
   }
-}
 
-/* ============================================================
-   START SESSION
-============================================================ */
-async function startSession() {
-  ACTIVE_FLOW = "skin";
-  CHAT_TIMELINE = [];
-  
-  // 1. Check if we are on the Full Page Proxy
-  const isFullPage = !!document.getElementById("derma-full-page-container");
+  updateHeaderTitle(title) {
+    const el = document.getElementById("derma-ai-header-title");
+    if (el) el.textContent = title;
+    const legacy = document.querySelector(".derma-ai-drawer-header span:first-child");
+    if (legacy && !el) legacy.textContent = title;
+  }
 
-  if (!isFullPage) {
-    // ONLY create and open drawer if we are NOT on the full page
-    createDrawer();
-    openDrawer();
-  } else {
-    // If full page, just clear the screen container if needed
+  /* ---------- Chat timeline ---------- */
+
+  escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  /** Safe fragment for HTML id attributes (not HTML-escaped). */
+  sanitizeDomId(str) {
+    return String(str ?? "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+
+  queryById(root, id) {
+    if (typeof CSS !== "undefined" && CSS.escape) {
+      return root.querySelector(`#${CSS.escape(id)}`);
+    }
+    return root.querySelector(`#${id}`);
+  }
+
+  renderChatUI() {
     const screen = document.getElementById("derma-ai-screen");
-    if (screen) screen.innerHTML = "";
+    if (!screen) return;
+
+    const bubbleConfig = this.uiSettings.drawer?.bubble;
+
+    screen.innerHTML = this.state.timeline
+      .map((m) => {
+        if (m.type === "bot")
+          return `<div class="chat-row bot"><div class="bubble bot-bubble">${m.text}</div></div>`;
+        if (m.type === "user")
+          return `<div class="chat-row user"><div class="bubble user-bubble">${m.text}</div></div>`;
+        if (m.type === "ui") return `<div class="chat-ui-block">${m.html}</div>`;
+        return "";
+      })
+      .join("");
+
+    // Apply dynamic styles to all bot bubbles
+    if (bubbleConfig) {
+      screen.querySelectorAll(".bot-bubble").forEach(el => {
+        this._applyDynamicStyles(el, bubbleConfig);
+        // Ensure width/height from your specific config are applied if present
+        // if (bubbleConfig.width) el.style.width = `${bubbleConfig.width}px`;
+        // if (bubbleConfig.height) el.style.minHeight = `${bubbleConfig.height}px`;
+      });
+      screen.querySelectorAll(".user-bubble").forEach(el => {
+        this._applyDynamicStyles(el, bubbleConfig);
+      });
+    }
+
+    screen.scrollTop = screen.scrollHeight;
   }
 
-  renderChatUI();
-  addBot("⏳ Preparing your personalized assessment...");
-
-  const data = await postJSON(SESSION_START_URL, {
-    platform: "web",
-    flowType: FLOW_CONFIG.skin.flowType,
-  });
-
-  if (!data || data.error) {
-    addBot("❌ Unable to start session.");
-    return;
+  addBot(text) {
+    if (!text) return;
+    this.state.timeline.push({ type: "bot", text: this.escapeHtml(text) });
+    this.renderChatUI();
   }
 
-  DERMA_SESSION_ID = data.session_id;
-  
-  // Update header title only if drawer exists
-  const headerTitle = document.querySelector(".derma-ai-drawer-header span");
-  if (headerTitle) {
-      headerTitle.textContent = FLOW_CONFIG[ACTIVE_FLOW].title;
+  addUser(text) {
+    this.state.timeline.push({ type: "user", text: this.escapeHtml(text) });
+    this.renderChatUI();
   }
 
-  addBot(FLOW_CONFIG[ACTIVE_FLOW].welcome);
-  renderUI(data.ui);
-}
-
-/* ============================================================
-   UI CONTROLLER
-============================================================ */
-function renderUI(ui) {
-  if (!ui) return;
-
-  CURRENT_STEP = ui.step_id;
-
-  // ✅ IMPORTANT: Prevent duplicate headings/messages for AI report
-  if (ui.ui_type !== "ai_report") {
-    if (ui.heading) addBot(ui.heading);
-    if (ui.message) addBot(ui.message);
+  /**
+   * Append a UI block and run attachListeners on the new block’s root
+   * so listeners bind to the correct DOM (no stale global queries).
+   */
+  addUI(html, attachListeners) {
+    this.state.timeline.push({ type: "ui", html });
+    this.renderChatUI();
+    const blocks = document.querySelectorAll("#derma-ai-screen .chat-ui-block");
+    const root = blocks[blocks.length - 1];
+    if (root && typeof attachListeners === "function") {
+      attachListeners(root);
+    }
   }
 
-  const map = {
-    card_select: renderCardSelect,
-    pill_list: renderPillList,
-    button_list: renderButtonList,
-    multi_select: renderMultiSelect,
-    image_upload: renderImageUpload,
-    analysis_cards: renderAnalysisCards,
-    product_routine: renderRoutine,
-    hair_product_routine: renderRoutine,
-    ai_report: renderAIReport,
-    final_actions: renderFinalActions,
-    action_button: renderActionButton,
-  };
-
-  const fn = map[ui.ui_type];
-  if (!fn) {
-    console.warn("⚠ Unsupported UI:", ui.ui_type, ui);
-    return;
+  notifyError(message) {
+    this.addBot(message || "Something went wrong. Please try again.");
   }
 
-  fn(ui);
-}
+  /* ---------- Session & submit ---------- */
 
-/* ============================================================
-   CARD SELECT (FIXED)
-============================================================ */
-function renderCardSelect(ui) {
-  addUI(`
+  async startSession() {
+    this.state.activeFlow = "skin";
+    this.state.timeline = [];
+
+    if (!this.isFullPage) {
+      this.createDrawer();
+      const drawer = document.getElementById("derma-ai-drawer");
+      if (drawer) drawer.classList.add("open");
+    } else {
+      const screen = document.getElementById("derma-ai-screen");
+      if (screen) screen.innerHTML = "";
+    }
+
+    this.renderChatUI();
+    this.addBot("⏳ Preparing your personalized assessment...");
+
+    const data = await this.api.post(this.endpoints.sessionStart, {
+      platform: "web",
+      flowType: this.flowConfig.skin.flowType,
+    });
+
+    if (!data || data.error) {
+      this.addBot("❌ Unable to start session.");
+      return;
+    }
+
+    this.state.sessionId = data.session_id;
+    this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
+    this.addBot(this.flowConfig[this.state.activeFlow].welcome);
+    this.renderUI(data.ui);
+  }
+
+  async submitStep(stepId, responseValue) {
+    if (!this.state.sessionId || this.state.isSubmitting) return;
+
+    this.state.isSubmitting = true;
+    const res = await this.api.post(this.endpoints.flowSubmit, {
+      session_id: this.state.sessionId,
+      step_id: stepId,
+      response: responseValue,
+      flowType: this.flowConfig[this.state.activeFlow].flowType,
+    });
+
+    this.state.isSubmitting = false;
+
+    if (res?.error) {
+      this.notifyError("❌ We couldn’t save that step. Please try again.");
+      return;
+    }
+    if (res?.ui) this.renderUI(res.ui);
+  }
+
+  /* ---------- UI engine: step type → renderer ---------- */
+
+  renderUI(ui) {
+    if (!ui) return;
+
+    this.state.currentStep = ui.step_id;
+
+    if (ui.ui_type !== "ai_report") {
+      if (ui.heading) this.addBot(ui.heading);
+      if (ui.message) this.addBot(ui.message);
+    }
+
+    const type = ui.ui_type;
+    switch (type) {
+      case "card_select":
+        this.renderCardSelect(ui);
+        break;
+      case "pill_list":
+        this.renderPillList(ui);
+        break;
+      case "button_list":
+        this.renderButtonList(ui);
+        break;
+      case "multi_select":
+        this.renderMultiSelect(ui);
+        break;
+      case "image_upload":
+        this.renderImageUpload(ui);
+        break;
+      case "analysis_cards":
+        this.renderAnalysisCards(ui);
+        break;
+      case "product_routine":
+      case "hair_product_routine":
+        this.renderRoutine(ui);
+        break;
+      case "ai_report":
+        this.renderAIReport(ui);
+        break;
+      case "final_actions":
+        this.renderFinalActions(ui);
+        break;
+      case "action_button":
+        this.renderActionButton(ui);
+        break;
+      default:
+        console.warn("Unsupported UI:", type, ui);
+    }
+  }
+
+  /* ---------- Step renderers ---------- */
+
+  renderCardSelect(ui) {
+    const html = `
     <div class="card-select-grid">
       ${(ui.options || [])
         .map(
           (o) => `
-        <div class="card-select-item" data-id="${escapeHtml(o.id)}">
-          ${o.image ? `<img src="${escapeHtml(o.image)}" />` : ""}
-          <div class="title">${escapeHtml(o.label)}</div>
+        <div class="card-select-item" data-id="${this.escapeHtml(o.id)}">
+          ${o.image ? `<img src="${this.escapeHtml(o.image)}" alt="" />` : ""}
+          <div class="title">${this.escapeHtml(o.label)}</div>
         </div>`
         )
         .join("")}
-    </div>
-  `);
+    </div>`;
 
-  document.querySelectorAll(".card-select-item").forEach((el) => {
-    el.onclick = () => {
-      addUser(el.querySelector(".title").textContent);
+    this.addUI(html, (root) => {
+      root.querySelectorAll(".card-select-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          this.addUser(el.querySelector(".title").textContent);
 
-      if (ui.step_id === "choose_concern") {
-        ACTIVE_FLOW = el.dataset.id === "hair_assessment" ? "hair" : "skin";
-        
-        // ✅ LINE 222 FIX: Only update text if the element exists
-        const headerSpan = document.querySelector(".derma-ai-drawer-header span");
-        if (headerSpan) {
-            headerSpan.textContent = FLOW_CONFIG[ACTIVE_FLOW].title;
-        }
-      }
+          if (ui.step_id === "choose_concern") {
+            this.state.activeFlow =
+              el.dataset.id === "hair_assessment" ? "hair" : "skin";
+            this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
+          }
 
-      submitStep(ui.step_id, el.dataset.id);
-    };
-  });
-}
+          this.submitStep(ui.step_id, el.dataset.id);
+        });
+      });
+    });
+  }
 
-/* ============================================================
-   PILL LIST
-============================================================ */
-function renderPillList(ui) {
-  addUI(`
+  renderPillList(ui) {
+    const html = `
     <div class="pill-list">
       ${(ui.options || [])
-        .map((o) => `<div class="pill-item">${escapeHtml(o)}</div>`)
+        .map((o) => `<div class="pill-item">${this.escapeHtml(o)}</div>`)
         .join("")}
-    </div>
-  `);
+    </div>`;
 
-  document.querySelectorAll(".pill-item").forEach((el) => {
-    el.onclick = () => {
-      addUser(el.textContent);
-      submitStep(ui.step_id, el.textContent);
-    };
-  });
-}
+    this.addUI(html, (root) => {
+      root.querySelectorAll(".pill-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          this.addUser(el.textContent);
+          this.submitStep(ui.step_id, el.textContent);
+        });
+      });
+    });
+  }
 
-/* ============================================================
-   BUTTON LIST
-============================================================ */
-function renderButtonList(ui) {
-  addUI(`
+  renderButtonList(ui) {
+    const html = `
     <div class="btn-list">
       ${(ui.options || [])
-        .map((o) => `<button class="figma-btn">${escapeHtml(o)}</button>`)
+        .map((o) => `<button type="button" class="figma-btn">${this.escapeHtml(o)}</button>`)
         .join("")}
-    </div>
-  `);
+    </div>`;
 
-  document.querySelectorAll(".btn-list .figma-btn").forEach((btn) => {
-    btn.onclick = () => {
-      addUser(btn.textContent);
-      submitStep(ui.step_id, btn.textContent);
-    };
-  });
-}
+    this.addUI(html, (root) => {
+      root.querySelectorAll(".btn-list .figma-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          this.addUser(btn.textContent);
+          this.submitStep(ui.step_id, btn.textContent);
+        });
+      });
+    });
+  }
 
-/* ============================================================
-   MULTI SELECT
-============================================================ */
-function renderMultiSelect(ui) {
-  const selected = new Set();
-  const btnId = `multi-${ui.step_id}`;
+  renderMultiSelect(ui) {
+    const selected = new Set();
+    const btnId = `multi-${this.sanitizeDomId(ui.step_id)}`;
 
-  addUI(`
+    const html = `
     <div class="goal-grid">
       ${(ui.options || [])
         .map(
           (o) => `
-        <div class="goal-item" data-id="${escapeHtml(o.id)}">${escapeHtml(
+        <div class="goal-item" data-id="${this.escapeHtml(o.id)}">${this.escapeHtml(
             o.label
           )}</div>
       `
         )
         .join("")}
     </div>
-    <button class="figma-btn primary" id="${btnId}">Continue</button>
-  `);
+    <button type="button" class="figma-btn primary" id="${btnId}">Continue</button>`;
 
-  document.querySelectorAll(".goal-item").forEach((el) => {
-    el.onclick = () => {
-      el.classList.toggle("active");
-      selected.has(el.dataset.id)
-        ? selected.delete(el.dataset.id)
-        : selected.add(el.dataset.id);
-    };
-  });
+    this.addUI(html, (root) => {
+      root.querySelectorAll(".goal-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          el.classList.toggle("active");
+          if (selected.has(el.dataset.id)) selected.delete(el.dataset.id);
+          else selected.add(el.dataset.id);
+        });
+      });
 
-  document.getElementById(btnId).onclick = () => {
-    if (!selected.size) {
-      addBot("⚠ Please select at least one option.");
-      return;
-    }
-    const payload = [...selected];
-    addUser(payload.join(", "));
-    addBot("⏳ Generating your personalized routine...");
-    submitStep(ui.step_id, payload);
-  };
-}
+      const continueBtn = this.queryById(root, btnId);
+      if (continueBtn) {
+        continueBtn.addEventListener("click", () => {
+          if (!selected.size) {
+            this.addBot("⚠ Please select at least one option.");
+            return;
+          }
+          const payload = [...selected];
+          this.addUser(payload.join(", "));
+          this.addBot("⏳ Generating your personalized routine...");
+          this.submitStep(ui.step_id, payload);
+        });
+      }
+    });
+  }
 
-/* ============================================================
-   ACTION BUTTON
-============================================================ */
-function renderActionButton(ui) {
-  addUI(`
+  renderActionButton(ui) {
+    const btnId = `action-${this.sanitizeDomId(ui.step_id)}`;
+
+    const html = `
     <div class="action-button-wrapper">
-      <button class="figma-btn primary" id="action-${ui.step_id}">
-        ${escapeHtml(ui.label || "Continue")}
+      <button type="button" class="figma-btn primary" id="${btnId}">
+        ${this.escapeHtml(ui.label || "Continue")}
       </button>
-    </div>
-  `);
+    </div>`;
 
-  document.getElementById(`action-${ui.step_id}`).onclick = () => {
-    addUser(ui.label || "Continue");
-    submitStep(ui.step_id, ui.value || "continue");
-  };
-}
+    this.addUI(html, (root) => {
+      const btn = this.queryById(root, btnId);
+      if (btn) {
+        btn.addEventListener("click", () => {
+          this.addUser(ui.label || "Continue");
+          this.submitStep(ui.step_id, ui.value || "continue");
+        });
+      }
+    });
+  }
 
-/* ============================================================
-   IMAGE UPLOAD
-============================================================ */
-function renderImageUpload() {
-  addUI(`<input type="file" id="img-upload" accept="image/*" />`);
+  renderImageUpload(ui) {
+    const inputId = `img-upload-${this.sanitizeDomId(this.state.sessionId || "session")}`;
 
-  document.getElementById("img-upload").onchange = async (e) => {
-    const fd = new FormData();
-    fd.append("session_id", DERMA_SESSION_ID);
-    fd.append("image", e.target.files[0]);
-    fd.append("analysis_type", ACTIVE_FLOW);
+    const html = `<input type="file" id="${inputId}" accept="image/*" aria-label="Upload image" />`;
 
-    addUser("📸 Photo uploaded");
-    addBot("⏳ Analyzing image...");
+    this.addUI(html, (root) => {
+      const input = this.queryById(root, inputId);
+      if (!input) return;
 
-    const res = await postJSON(IMAGE_UPLOAD_URL, fd, true);
-    if (res?.ui) renderUI(res.ui);
-  };
-}
+      input.addEventListener("change", async (e) => {
+        const file = e.target?.files?.[0];
+        if (!file) {
+          this.notifyError("⚠ Please choose an image file.");
+          return;
+        }
 
-/* ============================================================
-   ANALYSIS
-============================================================ */
-function renderAnalysisCards(ui) {
-  const results = Array.isArray(ui.results) ? ui.results : [];
+        const fd = new FormData();
+        fd.append("session_id", this.state.sessionId);
+        fd.append("image", file);
+        fd.append("analysis_type", this.state.activeFlow);
 
-  addUI(`
+        this.addUser("📸 Photo uploaded");
+        this.addBot("⏳ Analyzing image...");
+
+        const res = await this.api.post(this.endpoints.imageUpload, fd, true);
+
+        if (res?.error) {
+          this.notifyError("❌ Image upload failed. Please try another photo.");
+          return;
+        }
+        if (res?.ui) this.renderUI(res.ui);
+        else this.notifyError("❌ No response after upload. Please try again.");
+      });
+    });
+  }
+
+  renderAnalysisCards(ui) {
+    const results = Array.isArray(ui.results) ? ui.results : [];
+
+    const html = `
     <div class="analysis-grid">
       ${results
         .map(
           (group) => `
             <div class="analysis-group">
-              <div class="analysis-group-title">${escapeHtml(group.category || "")}</div>
+              <div class="analysis-group-title">${this.escapeHtml(group.category || "")}</div>
 
               <div class="analysis-group-list">
                 ${(Array.isArray(group.conditions) ? group.conditions : [])
                   .map(
                     (condition) => `
                       <div class="analysis-card">
-                        <b>${escapeHtml(condition.name || "")}</b>
-                        <div>${escapeHtml(condition.confidence || 0)}%</div>
+                        <b>${this.escapeHtml(condition.name || "")}</b>
+                        <div>${this.escapeHtml(condition.confidence || 0)}%</div>
                         ${
                           condition.location
-                            ? `<small>${escapeHtml(condition.location)}</small>`
+                            ? `<small>${this.escapeHtml(condition.location)}</small>`
                             : ""
                         }
                       </div>
@@ -389,23 +632,24 @@ function renderAnalysisCards(ui) {
         )
         .join("")}
     </div>
-    <button class="figma-btn primary" id="analysis-continue">Continue</button>
-  `);
+    <button type="button" class="figma-btn primary" id="analysis-continue">Continue</button>`;
 
-  document.getElementById("analysis-continue").onclick = () => {
-    addUser("Continue");
-    submitStep(ui.step_id, "continue");
-  };
-}
-/* ============================================================
-   PRODUCT ROUTINE ✅ UPDATED
-   - ADD button shown even if single product
-============================================================ */
-function renderRoutine(ui) {
-  const routine = Array.isArray(ui.routine) ? ui.routine : [];
-  const nextBtnId = `next-ai-report-${ui.step_id}`;
+    this.addUI(html, (root) => {
+      const btn = root.querySelector("#analysis-continue");
+      if (btn) {
+        btn.addEventListener("click", () => {
+          this.addUser("Continue");
+          this.submitStep(ui.step_id, "continue");
+        });
+      }
+    });
+  }
 
-  addUI(`
+  renderRoutine(ui) {
+    const routine = Array.isArray(ui.routine) ? ui.routine : [];
+    const nextBtnId = `next-ai-report-${this.sanitizeDomId(ui.step_id)}`;
+
+    const html = `
     <div class="routine-wrapper">
       <h3>Your Personalized <span>Routine</span></h3>
 
@@ -414,13 +658,12 @@ function renderRoutine(ui) {
           (section) => `
           <div class="routine-step">
 
-            <h4>${escapeHtml(section.category || "")}</h4>
+            <h4>${this.escapeHtml(section.category || "")}</h4>
 
             <div class="product-grid">
 
               ${(section.products || [])
                 .map((p) => {
-
                   const variantId = (p.variantId || "").split("/").pop();
                   const price = (p.price || "").replace("INR ", "");
                   const mrp = (p.compareAtPrice || "").replace("INR ", "");
@@ -430,26 +673,26 @@ function renderRoutine(ui) {
                       <div class="badge ${
                         p.recommendationType === "Recommended" ? "rec" : "alt"
                       }">
-                        ${escapeHtml(p.recommendationType || "")}
+                        ${this.escapeHtml(p.recommendationType || "")}
                       </div>
-                      <a href="${escapeHtml(p.url || "#")}" target="_blank">
-                        <img src="${escapeHtml(p.image || "")}" />
+                      <a href="${this.escapeHtml(p.url || "#")}" target="_blank" rel="noopener noreferrer">
+                        <img src="${this.escapeHtml(p.image || "")}" alt="" />
                       </a>
                       <div class="product-title">
-                        ${escapeHtml(p.name || "")}
+                        ${this.escapeHtml(p.name || "")}
                       </div>
                       <div class="price">
-                        ₹${escapeHtml(price)}
+                        ₹${this.escapeHtml(price)}
                         ${
                           mrp
-                            ? `<span>₹${escapeHtml(mrp)}</span>`
+                            ? `<span>₹${this.escapeHtml(mrp)}</span>`
                             : ""
                         }
                       </div>
                       <button
+                        type="button"
                         class="add-btn"
-                        data-variant="${escapeHtml(variantId)}"
-                        onclick="addToCart('${escapeHtml(variantId)}')"
+                        data-variant="${this.escapeHtml(variantId)}"
                       >
                         ADD
                       </button>
@@ -462,26 +705,40 @@ function renderRoutine(ui) {
         `
         )
         .join("")}
-      <button class="figma-btn primary add-all" onclick="addAllToCart()">
+      <button type="button" class="figma-btn primary add-all">
         Add All to Cart
       </button>
-      <button class="figma-btn primary" id="${nextBtnId}" style="margin-top:14px;">
+      <button type="button" class="figma-btn primary" id="${nextBtnId}" style="margin-top:14px;">
         Next AI Doctor’s Report
       </button>
-    </div>
-  `);
+    </div>`;
 
-  document.getElementById(nextBtnId).onclick = () => {
-    addUser("Next AI Doctor’s Report");
-    submitStep(ui.step_id, "continue");
-  };
-}
+    this.addUI(html, (root) => {
+      root.querySelectorAll(".add-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          this.addToCart(btn.dataset.variant);
+        });
+      });
 
-/* ============================================================
-   AI REPORT — FINAL FIX (DOWNLOAD + PROPER DESIGN)
-============================================================ */
-function renderAIReport(ui) {
-  addUI(`
+      const addAll = root.querySelector(".add-all");
+      if (addAll) {
+        addAll.addEventListener("click", () => this.addAllToCart(root));
+      }
+
+      const nextBtn = this.queryById(root, nextBtnId);
+      if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+          this.addUser("Next AI Doctor’s Report");
+          this.submitStep(ui.step_id, "continue");
+        });
+      }
+    });
+  }
+
+  renderAIReport(ui) {
+    const hasPdf = !!ui.pdf_url;
+
+    const html = `
     <div class="ai-report-wrapper">
       <span class="step">Step 5: AI Doctor's Report</span>
       <p>Here is a summary of your analysis and personalized plan.</p>
@@ -496,153 +753,153 @@ function renderAIReport(ui) {
           </div>
         </div>
 
-        <!-- ✅ Download button ALWAYS visible -->
-        <button
-          class="ai-report-download-btn"
-          onclick="${
-            ui.pdf_url
-              ? `window.open('${escapeHtml(ui.pdf_url)}','_blank')`
-              : `alert('Report is still generating. Please try again in a moment.')`
-          }"
-        >
+        <button type="button" class="ai-report-download-btn" data-action="download-report">
           ⬇ Download Report
         </button>
       </div>
 
       <div class="ai-report-actions">
-        <button class="figma-btn" onclick="handleFinalAction('start-over')">
-          Start Over
-        </button>
-        <button class="figma-btn primary" onclick="handleFinalAction('ai_assistant')">
-          AI Assistant
-        </button>
+        <button type="button" class="figma-btn" data-final-action="start-over">Start Over</button>
+        <button type="button" class="figma-btn primary" data-final-action="ai_assistant">AI Assistant</button>
       </div>
-    </div>
-  `);
-}
+    </div>`;
 
-/* ============================================================
-   FINAL ACTION HANDLER — FIXED
-============================================================ */
-function handleFinalAction(id) {
-  if (id === "start-over") {
-    startSession();
-    return;
+    this.addUI(html, (root) => {
+      const downloadBtn = root.querySelector("[data-action='download-report']");
+      if (downloadBtn) {
+        downloadBtn.addEventListener("click", () => {
+          if (hasPdf) {
+            window.open(ui.pdf_url, "_blank", "noopener,noreferrer");
+          } else {
+            window.alert("Report is still generating. Please try again in a moment.");
+          }
+        });
+      }
+
+      root.querySelectorAll("[data-final-action]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          this.handleFinalAction(btn.getAttribute("data-final-action"));
+        });
+      });
+    });
   }
 
-  if (id === "ai_assistant") {
-    addUser("AI Assistant");
-    addBot(
-      "Hello! I'm your Dermatics AI Skincare Assistant. How can I help you with your routine or skin analysis?"
-    );
+  /**
+   * Handles post-report actions (also used by renderFinalActions for dynamic ids).
+   * Merges both legacy duplicate handlers from the original script:
+   * - start-over: restart session
+   * - ai_assistant: user message + assistant reply (richer welcome copy preserved)
+   */
+  handleFinalAction(id) {
+    if (id === "start-over") {
+      this.startSession();
+      return;
+    }
+
+    if (id === "ai_assistant") {
+      this.addUser("AI Assistant");
+      this.addBot(
+        "Hello! I'm your Dermatics AI Skincare Assistant. How can I help you with your routine or skin analysis?"
+      );
+    }
   }
-}
 
-
-/* ============================================================
-   FINAL ACTIONS
-============================================================ */
-function renderFinalActions(ui) {
-  addUI(`
+  renderFinalActions(ui) {
+    const html = `
     <div class="final-actions">
       ${(ui.actions || [])
         .map(
           (a) =>
-            `<button class="figma-btn" onclick="handleFinalAction('${escapeHtml(
+            `<button type="button" class="figma-btn" data-final-action="${this.escapeHtml(
               a.id
-            )}')">${escapeHtml(a.label)}</button>`
+            )}">${this.escapeHtml(a.label)}</button>`
         )
         .join("")}
-    </div>
-  `);
-}
+    </div>`;
 
-function handleFinalAction(id) {
-  if (id === "start-over") startSession();
-  if (id === "ai_assistant") {
-    addBot("👋 I’m here to help. Ask me anything about your routine!");
+    this.addUI(html, (root) => {
+      root.querySelectorAll("[data-final-action]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          this.handleFinalAction(btn.getAttribute("data-final-action"));
+        });
+      });
+    });
+  }
+
+  /* ---------- Shopify cart ---------- */
+
+  async addToCart(variantId) {
+    if (!variantId) {
+      window.alert("Product variant missing");
+      return;
+    }
+
+    try {
+      const res = await fetch("/cart/add.js", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: Number(variantId), quantity: 1 }),
+      });
+
+      if (!res.ok) {
+        let err = {};
+        try {
+          err = await res.json();
+        } catch {
+          /* ignore */
+        }
+        window.alert(err.description || err.message || "Could not add to cart.");
+        return;
+      }
+    } catch (e) {
+      console.error("addToCart", e);
+      window.alert("Network error while adding to cart.");
+    }
+  }
+
+  async addAllToCart(scopeRoot = document) {
+    const items = [];
+
+    scopeRoot.querySelectorAll(".add-btn").forEach((btn) => {
+      const v = btn.dataset.variant;
+      if (v) items.push({ id: Number(v), quantity: 1 });
+    });
+
+    if (!items.length) {
+      window.alert("No products available to add");
+      return;
+    }
+
+    try {
+      const res = await fetch("/cart/add.js", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+
+      if (!res.ok) {
+        let err = {};
+        try {
+          err = await res.json();
+        } catch {
+          /* ignore */
+        }
+        window.alert(err.description || err.message || "Could not add items to cart.");
+      }
+    } catch (e) {
+      console.error("addAllToCart", e);
+      window.alert("Network error while adding to cart.");
+    }
   }
 }
 
-/* ============================================================
-   SUBMIT STEP
-============================================================ */
-async function submitStep(step_id, responseValue) {
-  if (!DERMA_SESSION_ID || IS_SUBMITTING) return;
-
-  IS_SUBMITTING = true;
-
-  const res = await postJSON(FLOW_SUBMIT_URL, {
-    session_id: DERMA_SESSION_ID,
-    step_id,
-    response: responseValue,
-    flowType: FLOW_CONFIG[ACTIVE_FLOW].flowType,
-  });
-
-  IS_SUBMITTING = false;
-  if (res?.ui) renderUI(res.ui);
+/** Expose class for multiple instances: `new DermaAIWizard({ baseUrl, flowConfig })` */
+if (typeof window !== "undefined") {
+  window.DermaAIWizard = DermaAIWizard;
 }
 
-/* ============================================================
-   CART (SHOPIFY)
-============================================================ */
-function addToCart(variantId) {
-  if (!variantId) {
-    alert("Product variant missing");
-    return;
-  }
-
-  fetch("/cart/add.js", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: Number(variantId), quantity: 1 }),
-  });
-}
-
-function addAllToCart() {
-  const items = [];
-
-  document.querySelectorAll(".add-btn").forEach((btn) => {
-    const v = btn.dataset.variant;
-    if (v) items.push({ id: Number(v), quantity: 1 });
-  });
-
-  if (!items.length) {
-    alert("No products available to add");
-    return;
-  }
-
-  fetch("/cart/add.js", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items }),
-  });
-}
-
-/* ============================================================
-   LAUNCHER (UPDATED)
-============================================================ */
-(function initLauncher() {
-  // Check if we are on the full-page proxy
-  const isFullPage = !!document.getElementById("derma-full-page-container");
-  
-  // If we are on the full page, do not create the floating button
-  if (isFullPage) {
-    console.log("ℹ️ Full-page detected: Floating launcher suppressed.");
-    return;
-  }
-
-  // Otherwise, create the button for the normal storefront
-  const btn = document.createElement("div");
-  btn.id = "derma-ai-launcher";
-  btn.textContent = "AI Skin & Hair Analysis";
-  btn.style.cssText =
-    "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
-  
-  btn.onclick = startSession;
-  document.body.appendChild(btn);
-})();
-
-
-
-
+/** Default singleton */
+const dermaAIWizard = new DermaAIWizard({
+  proxy: "/apps/derma-advisor",
+  baseUrl: "https://app.dermatics.in"
+});

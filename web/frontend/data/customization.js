@@ -14,10 +14,10 @@ export const defaultSettings = {
     drawer: {
       bgColor: "#ffffff",
       header: {
-        font: "sans-serif",
-        size: 18,
-        color: "#ffffff",
-        bg: "#333333",
+        fontFamily: "sans-serif",
+        fontSize: 18,
+        textColor: "#ffffff",
+        bgColor: "#333333",
       },
       bubble: {
         height: 60,

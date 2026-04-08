@@ -110,10 +110,13 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
         <div
           style={{
             padding: "20px 24px",
-            backgroundColor: data.drawer.header.bg !== "#333333" ? data.drawer.header.bg : "transparent",
-            color: data.drawer.header.color,
-            fontFamily: data.drawer.header.font,
-            fontSize: `${data.drawer.header.size}px`,
+            backgroundColor:
+              data.drawer.header.bgColor !== "#333333"
+                ? data.drawer.header.bgColor
+                : "transparent",
+            color: data.drawer.header.textColor,
+            fontFamily: data.drawer.header.fontFamily,
+            fontSize: `${data.drawer.header.fontSize}px`,
             fontWeight: "600",
             display: "flex",
             justifyContent: "space-between",

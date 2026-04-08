@@ -17,10 +17,10 @@ const settingsSchema = new mongoose.Schema({
   drawer: {
     bgColor: { type: String, default: "#ffffff" },
     header: {
-      font: { type: String, default: "sans-serif" },
-      size: { type: Number, default: 18 },
-      color: { type: String, default: "#ffffff" },
-      bg: { type: String, default: "#333333" },
+      fontFamily: { type: String, default: "sans-serif" },
+      fontSize: { type: Number, default: 18 },
+      textColor: { type: String, default: "#ffffff" },
+      bgColor: { type: String, default: "#333333" },
     },
     bubble: {
       height: { type: Number, default: 60 },

@@ -1,6 +1,7 @@
 import express from "express";
 import shopify from "../shopify.js";
-import publicRoutes from "./public.js";
+// import publicRoutes from "./public.js";
+import proxyRoutes from "./proxy.js";
 
 // controllers 
 import { getAppEmbedStatus } from "../controllers/appEmbedController.js";
@@ -26,6 +27,7 @@ router.post("/settings", shopify.validateAuthenticatedSession(), updateSettings)
  * These are unauthenticated (used by storefront widget/app proxy)
  * Path: /api/*
  */
-router.use("/", publicRoutes);
+// router.use("/", publicRoutes);
+router.use("/proxy", proxyRoutes);
 
 export default router;
