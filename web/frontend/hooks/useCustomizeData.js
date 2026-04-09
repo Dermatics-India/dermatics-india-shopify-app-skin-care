@@ -20,11 +20,8 @@ export const useCustomizeData = () => {
         { label: t("cmn.monospace"), value: "monospace" },
     ];
     
-    const displayTypeOptions = [
-        { label: t("Customization.settings.widget.iconOnly"), value: "icon" },
-        { label: t("Customization.settings.widget.textLabel"), value: "text" },
-    ];
 
-    return { tabs, fontWeightOptions, fontOptions, displayTypeOptions }
+
+    return { tabs, fontWeightOptions, fontOptions }
     
 }

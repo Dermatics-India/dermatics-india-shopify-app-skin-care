@@ -4,24 +4,19 @@ import { useTranslation } from "react-i18next";
 export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
   const { t } = useTranslation();
 
+  const img_urls = {
+    skin_assessment: "https://res.cloudinary.com/daqajshsm/image/upload/v1765433722/Group_okm1lm.jpg",
+    hair_assessment: "https://res.cloudinary.com/daqajshsm/image/upload/v1765433778/Frame_dboqnw.jpg",
+  }
+
   function getWidgetStyles() {
-    if (data.widget.displayType === "text") {
-      return {
-        backgroundColor: data.widget.bgColor,
-        color: data.widget.textColor,
-        fontSize: `${data.widget.fontSize}px`,
-        fontWeight: data.widget.fontWeight,
-        padding: `${data.widget.paddingY}px ${data.widget.paddingX}px`,
-        borderRadius: `${data.widget.radius}px`,
-      };
-    }
-    // Icon mode
     return {
       backgroundColor: data.widget.bgColor,
       color: data.widget.textColor,
-      height: "60px",
-      width: "60px",
-      borderRadius: "50%",
+      fontSize: `${data.widget.fontSize}px`,
+      fontWeight: data.widget.fontWeight,
+      padding: `${data.widget.paddingY}px ${data.widget.paddingX}px`,
+      borderRadius: `${data.widget.radius}px`,
     };
   }
 
@@ -82,11 +77,7 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
           e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1)";
         }}
       >
-        {data.widget.displayType === "text" ? (
-          data.widget.buttonText
-        ) : (
-          <span style={{ fontSize: "24px", color: "inherit" }}>✨</span>
-        )}
+        {data.widget.buttonText || "Analyze Skin"}
       </div>
 
       {/* Live Drawer */}
@@ -124,7 +115,7 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
             borderBottom: "1px solid #e1e3e5"
           }}
         >
-          <span>{type === "skincare" ? t("Customization.settings.preview.headerSkin") : t("Customization.settings.preview.headerHair")}</span>
+          <span>{type === "skinCare" ? t("Customization.settings.preview.headerSkin") : t("Customization.settings.preview.headerHair")}</span>
           <button
             onClick={() => setIsDrawerOpen(false)}
             style={{
@@ -165,6 +156,65 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
             }}
           >
             {t("Customization.settings.preview.mockMessage") || "Hello! We are here to help you find the best items for your regimen."}
+          </div>
+
+          <div
+            style={{
+              alignSelf: "flex-start",
+              display: "grid",
+              gap: "12px",
+              width: "100%",
+              marginTop: "4px",
+            }}
+          >
+            {[
+              {
+                id: "skinCare",
+                title: "Skin Assessment",
+                subtitle: "Analyze skin concerns and get routines",
+                icon: img_urls.skin_assessment ,
+              },
+              {
+                id: "hairCare",
+                title: "Hair Assessment",
+                subtitle: "Analyze hair concerns and get routines",
+                icon: img_urls.hair_assessment,
+              },
+            ].map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  borderRadius: "16px",
+                  padding: "12px",
+                  border: `1px solid ${type === item.id ? "#2563eb" : "#e5e7eb"}`,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  background: "#fff",
+                }}
+              >
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "12px",
+                    background: "#f3f4f6",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "22px",
+                    objectFit: "cover",
+                  }}
+                >
+                  <img src={item.icon} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontWeight: 600, color: "#111827", fontSize: "14px" }}>{item.title}</div>
+                  <div style={{ color: "#6b7280", fontSize: "12px" }}>{item.subtitle}</div>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div

@@ -1,14 +1,25 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next';
-import { BlockStack, InlineStack, TextField, Select, RangeSlider, Text, Divider, Tabs, Box, Grid, Card } from "@shopify/polaris";
+import { BlockStack, TextField, Select, Text, Divider, Box } from "@shopify/polaris";
 import { ColorInput } from "../../common/ColorInput";
 
 // hooks 
 import { useCustomizeData } from '../../../hooks/useCustomizeData';
 
 export const DrawerSettings = ({ data, onChange } ) => {
-    const { t } = useTranslation()
+  const { t } = useTranslation()
   const { fontOptions, fontWeightOptions } = useCustomizeData()
+  const handleNumberChange = (section, field, value, min, max) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) {
+      onChange(section, field, min);
+      return;
+    }
+
+    const clamped = Math.max(min, Math.min(max, parsed));
+    onChange(section, field, clamped);
+  };
+
   return (
     <BlockStack gap="">
       <BlockStack>
@@ -44,13 +55,14 @@ export const DrawerSettings = ({ data, onChange } ) => {
               value={data.drawer.header.fontFamily}
               onChange={(val) => onChange("header", "fontFamily", val)}
             />
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.drawer.fontSize")}
+              type="number"
               min={12}
               max={32}
-              value={data.drawer.header.fontSize}
-              onChange={(val) => onChange("header", "fontSize", val)}
-              output
+              value={String(data.drawer.header.fontSize ?? 18)}
+              onChange={(val) => handleNumberChange("header", "fontSize", val, 12, 32)}
+              autoComplete="off"
             />
 
             <ColorInput
@@ -87,13 +99,14 @@ export const DrawerSettings = ({ data, onChange } ) => {
               value={data.drawer.bubble.textColor}
               onChange={(val) => onChange("bubble", "textColor", val)}
             />
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.drawer.fontSize")}
+              type="number"
               min={10}
               max={24}
-              value={data.drawer.bubble.fontSize}
-              onChange={(val) => onChange("bubble", "fontSize", val)}
-              output
+              value={String(data.drawer.bubble.fontSize ?? 14)}
+              onChange={(val) => handleNumberChange("bubble", "fontSize", val, 10, 24)}
+              autoComplete="off"
             />
             <Select
               label={t("Customization.settings.drawer.fontWeight")}
@@ -101,13 +114,14 @@ export const DrawerSettings = ({ data, onChange } ) => {
               value={data.drawer.bubble.fontWeight}
               onChange={(val) => onChange("bubble", "fontWeight", val)}
             />
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.drawer.bubbleRadius")}
+              type="number"
               min={0}
               max={30}
-              value={data.drawer.bubble.radius}
-              onChange={(val) => onChange("bubble", "radius", val)}
-              output
+              value={String(data.drawer.bubble.radius ?? 12)}
+              onChange={(val) => handleNumberChange("bubble", "radius", val, 0, 30)}
+              autoComplete="off"
             />
           </BlockStack>
         </Box>

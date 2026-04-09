@@ -8,7 +8,7 @@ const hair = () => {
     
     return (
         <Page fullWidth>
-            <CustomizeWidget type="haircare" />
+            <CustomizeWidget type="hairCare" />
         </Page>
     )
 }

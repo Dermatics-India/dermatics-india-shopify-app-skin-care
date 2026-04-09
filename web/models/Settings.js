@@ -1,38 +1,77 @@
 import mongoose from "mongoose";
 
-const settingsSchema = new mongoose.Schema({
-  shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', required: true, unique: true }, // Links to your Shop table/domain
-  widget: {
-    displayType: { type: String, default: "icon" },
-    buttonText: { type: String, default: "Analyze Skin" },
-    bgColor: { type: String, default: "#000000" },
+const widgetSchema = new mongoose.Schema({
+  buttonText: { type: String, default: "Analyze Skin" },
+  bgColor: { type: String, default: "#000000" },
+  textColor: { type: String, default: "#ffffff" },
+  fontSize: { type: Number, default: 16 },
+  fontWeight: { type: String, default: "normal" },
+  paddingX: { type: Number, default: 24 },
+  paddingY: { type: Number, default: 12 },
+  radius: { type: Number, default: 30 },
+}, { _id: false });
+
+const drawerSchema = new mongoose.Schema({
+  bgColor: { type: String, default: "#ffffff" },
+  header: {
+    fontFamily: { type: String, default: "sans-serif" },
+    fontSize: { type: Number, default: 18 },
     textColor: { type: String, default: "#ffffff" },
-    iconUrl: { type: String, default: "" },
-    fontSize: { type: Number, default: 16 },
-    fontWeight: { type: String, default: "normal" },
-    paddingX: { type: Number, default: 24 },
-    paddingY: { type: Number, default: 12 },
-    radius: { type: Number, default: 30 },
+    bgColor: { type: String, default: "#333333" },
   },
-  drawer: {
-    bgColor: { type: String, default: "#ffffff" },
-    header: {
-      fontFamily: { type: String, default: "sans-serif" },
-      fontSize: { type: Number, default: 18 },
-      textColor: { type: String, default: "#ffffff" },
-      bgColor: { type: String, default: "#333333" },
+  bubble: {
+    height: { type: Number, default: 60 },
+    width: { type: String, default: "80%" },
+    radius: { type: Number, default: 12 },
+    bgColor: { type: String, default: "#f4f4f4" },
+    textColor: { type: String, default: "#333333" },
+    fontSize: { type: Number, default: 14 },
+    fontWeight: { type: String, default: "normal" },
+  },
+}, { _id: false });
+
+const moduleConfigSchema = new mongoose.Schema({
+  enabled: { type: Boolean, default: true },
+  text: {
+    label: { type: String, default: "" },
+    textColor: { type: String, default: "#333333" },
+    fontSize: { type: Number, default: 14 },
+    fontWeight: { type: String, default: "normal" },
+  },
+  image: {
+    url: { type: String, default: "" },
+    height: { type: Number, default: 50 },
+    width: { type: Number, default: 50 },
+    radius: { type: Number, default: 15 },
+  },
+}, { _id: false });
+
+const settingsSchema = new mongoose.Schema({
+  shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shop", required: true, unique: true },
+  widget: { type: widgetSchema, default: () => ({ buttonText: "Analyze Skin" }) },
+  drawer: { type: drawerSchema, default: () => ({}) },
+  modules: {
+    skinCare: {
+      type: moduleConfigSchema,
+      default: () => ({
+        enabled: true,
+        text: { label: "Skin Analysis" },
+      }),
     },
-    bubble: {
-      height: { type: Number, default: 60 },
-      width: { type: String, default: "80%" },
-      radius: { type: Number, default: 12 },
-      bgColor: { type: String, default: "#f4f4f4" },
-      textColor: { type: String, default: "#333333" },
-      fontSize: { type: Number, default: 14 },
-      fontWeight: { type: String, default: "normal" },
+    hairCare: {
+      type: moduleConfigSchema,
+      default: () => ({
+        enabled: true,
+        text: { label: "Hair Analysis" },
+      }),
     },
+  },
+  flags: {
+    extensionEnabled: { type: Boolean, default: true },
+    skinEnabled: { type: Boolean, default: true },
+    hairEnabled: { type: Boolean, default: true },
   },
 }, { timestamps: true });
 
-const Settings = mongoose.model("Settings", settingsSchema);
+const Settings = mongoose.models.Settings || mongoose.model("Settings", settingsSchema);
 export default Settings;

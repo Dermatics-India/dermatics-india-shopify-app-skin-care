@@ -11,6 +11,7 @@ import { useApi } from "../../hooks/useApi";
 import { WidgetPreview } from "./WidgetPreview";
 import { WidgetSettings } from "./settings/WidgetSettings";
 import { DrawerSettings } from "./settings/DrawerSettings";
+import { ModuleSettings } from "./settings/ModuleSettings";
 import { WidgetPageLoader, LoadingOverlay } from "../common";
 
 // data 
@@ -27,11 +28,20 @@ export function CustomizeWidget({ type }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const { tabs } = useCustomizeData()
-
+  const isCustomizePage = type === "customize";
+  const currentModuleKey = type;
+  const fallbackSettings = isCustomizePage
+    ? { widget: defaultSettings.widget, drawer: defaultSettings.drawer }
+    : {
+        widget: defaultSettings.widget,
+        drawer: defaultSettings.drawer,
+        modules: defaultSettings.modules,
+        flags: defaultSettings.flags,
+      };
   // Initial State matching the requested schema
   const [selectedTab, setSelectedTab] = useState(0);
-  const [settings, setSettings] = useState(defaultSettings)
-  const [prevSettings, setPrevSettings] = useState(defaultSettings)
+  const [settings, setSettings] = useState(fallbackSettings)
+  const [prevSettings, setPrevSettings] = useState(fallbackSettings)
   const [isPageLoading, setPageLoading] = useState(true); 
   const [isSavebarLoading, setSavebarLoading] = useState(false);
 
@@ -39,12 +49,19 @@ export function CustomizeWidget({ type }) {
 
   const getSettingsData = () => {
     setPageLoading(true)
-    api.get(ENDPOINTS.GET_SETTINGS)
+    api.get(ENDPOINTS.GET_SETTINGS, { type })
       .then(res => {
-        // console.log("response data:::", res)
-        const drawerSettings = res?.data?.drawer || defaultSettings?.drawer
-        const widgetSettings = res?.data?.widget || defaultSettings?.widget
-        const settingsObj = { widget: widgetSettings, drawer: drawerSettings }
+        const settingsObj = isCustomizePage
+          ? {
+              widget: res?.data?.widget || fallbackSettings?.widget,
+              drawer: res?.data?.drawer || fallbackSettings?.drawer,
+            }
+          : {
+              widget: res?.data?.widget || fallbackSettings?.widget,
+              drawer: res?.data?.drawer || fallbackSettings?.drawer,
+              modules: res?.data?.modules || fallbackSettings?.modules,
+              flags: res?.data?.flags || fallbackSettings?.flags,
+            };
         setSettings(settingsObj)
         setPrevSettings(settingsObj)
       })
@@ -57,10 +74,25 @@ export function CustomizeWidget({ type }) {
 
   const updateSettings = () => {
     setSavebarLoading(true)
-    api.post(ENDPOINTS.UPDATE_SETTINGS, settings)
+
+    const payload = {
+        widget: settings.widget,
+        drawer: settings.drawer,
+        modules: settings.modules, // Sending the full object { skinCare: ..., hairCare: ... }
+        // flags: settings.flags
+      };
+
+    api.post(ENDPOINTS.UPDATE_SETTINGS, payload)
       .then(res => {
-        setSettings(res?.data)
-        setPrevSettings(res?.data)
+        const data = res?.data;
+        const syncSettings = {
+          widget: data?.widget,
+          drawer: data?.drawer,
+          modules: data?.modules,
+          flags: data?.flags
+        };
+        setSettings(syncSettings)
+        setPrevSettings(syncSettings)
         shopify.toast.show(res?.message)
       })
       .catch((error) => {
@@ -72,7 +104,7 @@ export function CustomizeWidget({ type }) {
   
   useEffect(() => {
     getSettingsData()
-  }, [])
+  }, [type])
 
   useEffect(() => {
     if (isDirty) {
@@ -113,6 +145,35 @@ export function CustomizeWidget({ type }) {
     updateSettings(settings)
   };
 
+  const handleModuleChange = (section, field, value) => {
+    if (section) {
+      setSettings((prev) => ({
+        ...prev,
+        modules: {
+          ...prev.modules,
+          [currentModuleKey]: {
+            ...prev.modules[currentModuleKey],
+            [section]: {
+              ...prev.modules[currentModuleKey][section],
+              [field]: value,
+            },
+          }
+        },
+      }));
+      return;
+    }
+
+    setSettings((prev) => ({
+      ...prev,
+      modules: { 
+        ...prev.modules, 
+        [currentModuleKey]: {
+          ...prev.modules[currentModuleKey],
+          [field]: value },
+        }
+    }));
+  };
+
   const handleDiscard = () => {
     shopify.saveBar.hide()
     setSettings(prevSettings)
@@ -130,7 +191,13 @@ export function CustomizeWidget({ type }) {
 
   return (
     <Page
-      title={type === "skincare" ? t("Customization.settings.titleSkin") : t("Customization.settings.titleHair")}
+      title={
+        type === "customize"
+          ? t("Customization.settings.titleWidget")
+          : type === "skinCare"
+          ? t("Customization.settings.titleSkin")
+          : t("Customization.settings.titleHair")
+      }
     // primaryAction={{ content: t("Customization.settings.save"), onAction: handleSave }}
     // fullWidth
     // backAction={{ content: t("Customization.settings.back"), url: "/customization" }}
@@ -141,9 +208,11 @@ export function CustomizeWidget({ type }) {
         <Layout.Section variant="oneThird">
           <Card padding="0">
             <Box paddingInlineStart="100" paddingInlineEnd="100">
-              <Tabs tabs={tabs} selected={selectedTab} onSelect={handleTabChange} fitted />
+              {isCustomizePage ? (
+                <Tabs tabs={tabs} selected={selectedTab} onSelect={handleTabChange} fitted />
+              ) : null}
             </Box>
-            <Divider borderColor="border" />
+            {isCustomizePage ? <Divider borderColor="border" /> : null}
             <Scrollable 
               style={{ 
                 height: 'calc(100vh - 250px)', 
@@ -152,16 +221,22 @@ export function CustomizeWidget({ type }) {
               shadow
             >
             <Box padding="">
-              {selectedTab === 0 &&
+              {isCustomizePage && selectedTab === 0 &&
                 <WidgetSettings
                   data={settings}
                   onChange={handleWidgetChange}
                 />
               }
-              {selectedTab === 1 &&
+              {isCustomizePage && selectedTab === 1 &&
                 <DrawerSettings
                   data={settings}
                   onChange={handleDrawerChange}
+                />
+              }
+              {!isCustomizePage &&
+                <ModuleSettings
+                  data={settings.modules[type]}
+                  onChange={handleModuleChange}
                 />
               }
             </Box>

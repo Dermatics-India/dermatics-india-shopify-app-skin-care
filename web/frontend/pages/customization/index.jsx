@@ -14,7 +14,7 @@ import { CategoryCard } from '../../components/customization';
 // Assets
 import SkinCareIcon from "../../assets/skincare_cat.png";
 import HairCareIcon from "../../assets/haircare_cat.png";
-// import customizeIcon from '../../assets/customize.png'
+import customizeIcon from '../../assets/customize.png'
 
 const Customization = () => {
   const { t } = useTranslation();
@@ -22,7 +22,7 @@ const Customization = () => {
 
   return (
     <Page 
-      narrowWidth
+      // narrowWidth
     >
       
       <BlockStack gap="400">
@@ -38,7 +38,7 @@ const Customization = () => {
         </Box>
 
         <Layout>
-          {/* <Layout.Section variant="oneThird">
+          <Layout.Section variant="oneThird">
             <CategoryCard 
               title={t("Customization.categories.customize.title")}
               description={t("Customization.categories.customize.description")}
@@ -46,7 +46,7 @@ const Customization = () => {
               image={customizeIcon}
               onAction={() => navigate("/customization/customize")}
             />
-          </Layout.Section> */}
+          </Layout.Section>
 
           <Layout.Section variant="oneThird">
             <CategoryCard 

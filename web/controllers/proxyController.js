@@ -31,7 +31,19 @@ export const getWidgetSettings = async (req, res) => {
       });
     }
 
-    return res.status(200).json({ success: true, data: settings });
+    const data = settings.toObject();
+    const permissions = shopRecord?.permissions || {};
+
+    data.flags = {
+      ...(data.flags || {}),
+      skinEnabled: permissions.skinEnabled ?? data.flags?.skinEnabled ?? true,
+      hairEnabled: permissions.hairEnabled ?? data.flags?.hairEnabled ?? true,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

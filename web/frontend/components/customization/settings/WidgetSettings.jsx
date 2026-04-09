@@ -1,36 +1,27 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import { useTranslation } from 'react-i18next';
-import { BlockStack, InlineStack, TextField, Select, RangeSlider, Text, Divider, Tabs, Box, Grid, Card } from "@shopify/polaris";
+import { BlockStack, TextField, Select, Box } from "@shopify/polaris";
 import { ColorInput } from "../../common/ColorInput";
 
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
 
 export function WidgetSettings({ data, onChange }) {
   const { t } = useTranslation()
-  const { fontWeightOptions, displayTypeOptions } = useCustomizeData()
+  const { fontWeightOptions } = useCustomizeData()
+  const handleNumberChange = (field, value, min, max) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) {
+      onChange(field, min);
+      return;
+    }
+
+    const clamped = Math.max(min, Math.min(max, parsed));
+    onChange(field, clamped);
+  };
 
   return (
     <Box padding="400">
       <BlockStack gap="400">
-        <Select
-          label={t("Customization.settings.widget.displayType")}
-          options={displayTypeOptions}
-          value={data.widget.displayType}
-          onChange={(val) => onChange("displayType", val)}
-        />
-
-        {data.widget.displayType === "icon" && (
-          <TextField
-            label={t("Customization.settings.widget.iconUrl")}
-            placeholder="https://..."
-            value={data.widget.iconUrl}
-            onChange={(val) => onChange("iconUrl", val)}
-            autoComplete="off"
-            helpText={t("Customization.settings.widget.iconUrlHelp")}
-          />
-        )}
-
-        {data.widget.displayType === "text" && (
           <BlockStack gap="400">
             <TextField
               label={t("Customization.settings.widget.buttonText")}
@@ -44,41 +35,44 @@ export function WidgetSettings({ data, onChange }) {
               value={data.widget.fontWeight}
               onChange={(val) => onChange("fontWeight", val)}
             />
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.widget.fontSize")}
+              type="number"
               min={10}
               max={36}
-              value={data.widget.fontSize}
-              onChange={(val) => onChange("fontSize", val)}
-              output
+              value={String(data.widget.fontSize ?? 16)}
+              onChange={(val) => handleNumberChange("fontSize", val, 10, 36)}
+              autoComplete="off"
             />
 
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.widget.paddingX")}
+              type="number"
               min={10}
               max={60}
-              value={data.widget.paddingX}
-              onChange={(val) => onChange("paddingX", val)}
-              output
+              value={String(data.widget.paddingX ?? 24)}
+              onChange={(val) => handleNumberChange("paddingX", val, 10, 60)}
+              autoComplete="off"
             />
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.widget.paddingY")}
+              type="number"
               min={4}
               max={40}
-              value={data.widget.paddingY}
-              onChange={(val) => onChange("paddingY", val)}
-              output
+              value={String(data.widget.paddingY ?? 12)}
+              onChange={(val) => handleNumberChange("paddingY", val, 4, 40)}
+              autoComplete="off"
             />
-            <RangeSlider
+            <TextField
               label={t("Customization.settings.widget.radius")}
+              type="number"
               min={0}
               max={50}
-              value={data.widget.radius}
-              onChange={(val) => onChange("radius", val)}
-              output
+              value={String(data.widget.radius ?? 30)}
+              onChange={(val) => handleNumberChange("radius", val, 0, 50)}
+              autoComplete="off"
             />
           </BlockStack>
-        )}
         <ColorInput
           label={t("Customization.settings.widget.bgColor")}
           value={data.widget.bgColor}

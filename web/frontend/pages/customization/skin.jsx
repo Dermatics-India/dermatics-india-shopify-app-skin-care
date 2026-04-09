@@ -8,7 +8,7 @@ const skin = () => {
   const { t } = useTranslation()
   return (
     <Page fullWidth>
-      <CustomizeWidget type="skincare" />
+      <CustomizeWidget type="skinCare" />
     </Page>
   )
 }

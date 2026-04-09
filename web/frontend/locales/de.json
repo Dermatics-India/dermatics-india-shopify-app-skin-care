@@ -83,8 +83,6 @@
         "drawer": "Drawer Settings"
       },
       "widget": {
-        "displayType": "Display Type",
-        "iconOnly": "Icon Only",
         "textLabel": "Text Label",
         "bgColor": "Background",
         "textColor": "Text/Icon Color",

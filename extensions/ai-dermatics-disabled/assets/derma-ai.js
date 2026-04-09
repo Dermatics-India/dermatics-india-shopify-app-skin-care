@@ -150,12 +150,11 @@ class DermaAIWizard {
 
     Object.assign(el.style, styles);
   }
-  
 
   /* ---------- Full page proxy: suppress floating launcher ---------- */
 
  async _initLauncher() {
-    const settings = await this.getSettings();
+    await this.getSettings();
 
     // console.log("ui settings", settings);
     // console.log("isFullPage", this.isFullPage);
@@ -166,17 +165,13 @@ class DermaAIWizard {
     }
     if (document.getElementById("derma-ai-launcher")) return;
 
-    const config = settings.widget
+    const config = settings.widget || {};
     const btn = document.createElement("div");
     btn.id = "derma-ai-launcher";
     btn.className = "derma-ai-launcher";
 
     // Handle Icon vs Text display
-    if (config.displayType === "icon" && config.iconUrl) {
-      btn.innerHTML = `<img src="${config.iconUrl}" style="width:24px;height:24px;" alt="icon" />`;
-    } else {
-      btn.textContent = config.buttonText || "Analyze Skin";
-    }
+    btn.textContent = config.buttonText || "Analyze Skin";
     this._applyDynamicStyles(btn, config);
     // btn.style.cssText =  
       // "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
@@ -189,13 +184,10 @@ class DermaAIWizard {
     const res = await this.api.get(this.endpoints.settings);
     if (res?.error) {
       console.error("DermaAIWizard API error", res);
-      this.uiSettings = { drawer: {}, widget: {} };
+      this.uiSettings = {};
       return this.uiSettings;
     }
-    const dataObj = {
-      drawer: res?.data?.drawer || {},
-      widget: res?.data?.widget || {}
-    };
+    const dataObj = res?.data || {};
     
     console.log("settings:::response", dataObj);
     this.uiSettings = dataObj;
@@ -207,7 +199,7 @@ class DermaAIWizard {
   createDrawer() {
     if (document.getElementById("derma-ai-drawer")) return;
 
-    const config = this.uiSettings.drawer;
+    const config = this.uiSettings.drawer || {};
     const drawer = document.createElement("div");
     drawer.id = "derma-ai-drawer";
 
@@ -452,8 +444,19 @@ class DermaAIWizard {
           this.addUser(el.querySelector(".title").textContent);
 
           if (ui.step_id === "choose_concern") {
+            const isHair = el.dataset.id === "hair_assessment";
+            const flowFlag = isHair ? this.uiSettings?.flags?.hairEnabled : this.uiSettings?.flags?.skinEnabled;
+            const moduleEnabled = isHair
+              ? this.uiSettings?.modules?.hairCare?.enabled
+              : this.uiSettings?.modules?.skinCare?.enabled;
+
+            if (flowFlag === false || moduleEnabled === false) {
+              this.addBot("This module is currently disabled by the store admin.");
+              return;
+            }
+
             this.state.activeFlow =
-              el.dataset.id === "hair_assessment" ? "hair" : "skin";
+              isHair ? "hair" : "skin";
             this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
           }
 
