@@ -14,11 +14,11 @@ class ApiHandler {
     const data = isJson ? await res.json().catch(() => ({})) : {};
 
     if (!res.ok) {
-      return { 
-        error: true, 
-        status: res.status, 
+      return {
+        error: true,
+        status: res.status,
         message: data.message || "Request failed",
-        ...data 
+        ...data
       };
     }
     return data;
@@ -29,15 +29,15 @@ class ApiHandler {
    */
   async get(url, params = {}) {
     try {
-      const query = Object.keys(params).length 
-        ? `?${new URLSearchParams(params)}` 
+      const query = Object.keys(params).length
+        ? `?${new URLSearchParams(params)}`
         : "";
 
       const res = await fetch(`${url}${query}`, {
         method: "GET",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json" 
+          "Accept": "application/json"
         }
       });
 
@@ -52,18 +52,16 @@ class ApiHandler {
    */
   async post(url, payload, isMultipart = false) {
     try {
+      const headers = { "Accept": "application/json" };
+      // Only set Content-Type if it's NOT multipart
+      if (!isMultipart) {
+        headers["Content-Type"] = "application/json";
+      }
       const options = {
         method: "POST",
         body: isMultipart ? payload : JSON.stringify(payload),
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json" 
-        }
+        headers: headers
       };
-
-      if (!isMultipart) {
-        options.headers["Content-Type"] = "application/json";
-      }
 
       const res = await fetch(url, options);
       return await this.#handleResponse(res);
@@ -153,8 +151,9 @@ class DermaAIWizard {
 
   /* ---------- Full page proxy: suppress floating launcher ---------- */
 
- async _initLauncher() {
-    await this.getSettings();
+  async _initLauncher() {
+    console.log("flowConfig:::", this.flowConfig)
+    const settings = await this.getSettings();
 
     // console.log("ui settings", settings);
     // console.log("isFullPage", this.isFullPage);
@@ -174,7 +173,7 @@ class DermaAIWizard {
     btn.textContent = config.buttonText || "Analyze Skin";
     this._applyDynamicStyles(btn, config);
     // btn.style.cssText =  
-      // "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
+    // "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
     btn.addEventListener("click", () => this.startSession());
     document.body.appendChild(btn);
   }
@@ -188,7 +187,7 @@ class DermaAIWizard {
       return this.uiSettings;
     }
     const dataObj = res?.data || {};
-    
+
     console.log("settings:::response", dataObj);
     this.uiSettings = dataObj;
     return dataObj;
@@ -203,6 +202,7 @@ class DermaAIWizard {
     const drawer = document.createElement("div");
     drawer.id = "derma-ai-drawer";
 
+    console.log("config:::",  config)
     // Apply Main Drawer Background
     drawer.style.backgroundColor = config.bgColor || "#ffffff";
 
@@ -210,7 +210,7 @@ class DermaAIWizard {
     drawer.innerHTML = `
       <div class="derma-ai-drawer-header" id="derma-drawer-header">
         <span id="derma-ai-header-title">AI Skin & Hair Advisor</span>
-        <span class="wizard-close" role="button" aria-label="Close">&times;</span>
+        <span class="wizard-close" style="color: ${config?.header?.textColor || "#fff"}" role="button" aria-label="Close">&times;</span>
       </div>
       <div id="derma-ai-screen" class="derma-ai-chat-screen"></div>
     `;
@@ -274,15 +274,17 @@ class DermaAIWizard {
       .join("");
 
     // Apply dynamic styles to all bot bubbles
-    if (bubbleConfig) {
+    if (bubbleConfig?.boat) {
       screen.querySelectorAll(".bot-bubble").forEach(el => {
-        this._applyDynamicStyles(el, bubbleConfig);
+        this._applyDynamicStyles(el, bubbleConfig?.boat);
         // Ensure width/height from your specific config are applied if present
         // if (bubbleConfig.width) el.style.width = `${bubbleConfig.width}px`;
         // if (bubbleConfig.height) el.style.minHeight = `${bubbleConfig.height}px`;
       });
+    }
+    if (bubbleConfig?.user) {
       screen.querySelectorAll(".user-bubble").forEach(el => {
-        this._applyDynamicStyles(el, bubbleConfig);
+        this._applyDynamicStyles(el, bubbleConfig?.user);
       });
     }
 
@@ -424,16 +426,81 @@ class DermaAIWizard {
 
   /* ---------- Step renderers ---------- */
 
-  renderCardSelect(ui) {
+  renderCardChooseConcern(ui) {
+    const filteredOptions = (ui.options || []).filter((o) => {
+      if (ui.step_id === "choose_concern") {
+        const isHair = o.id === "hair_assessment";
+        const isSkin = o.id === "skin_assessment";
+
+        if (isHair) {
+          const flag = this.uiSettings?.flags?.hairEnabled !== false;
+          const module = this.uiSettings?.modules?.hairCare?.enabled !== false;
+          return flag && module;
+        }
+
+        if (isSkin) {
+          const flag = this.uiSettings?.flags?.skinEnabled !== false;
+          const module = this.uiSettings?.modules?.skinCare?.enabled !== false;
+          return flag && module;
+        }
+      }
+      return true; // Show other options by default
+    }).map((o) => {
+      if (ui.step_id === "choose_concern") {
+        let moduleKey = "";
+        if (o.id === "hair_assessment") moduleKey = "hairCare"
+        if (o.id === "skin_assessment") moduleKey = "skinCare"
+
+        if (moduleKey) {
+          return {
+            ...o,
+            config: this.uiSettings?.modules?.[moduleKey] || {}
+          };
+        } else {
+          return { ...o }
+        }
+      }
+      return o;
+    });
+
+    console.log("filteredOptions----", filteredOptions)
+
     const html = `
     <div class="card-select-grid">
-      ${(ui.options || [])
-        .map(
-          (o) => `
-        <div class="card-select-item" data-id="${this.escapeHtml(o.id)}">
-          ${o.image ? `<img src="${this.escapeHtml(o.image)}" alt="" />` : ""}
-          <div class="title">${this.escapeHtml(o.label)}</div>
-        </div>`
+      ${(filteredOptions)
+        .map((o) => {
+            const text = o.config?.text || {};
+            const img = o.config?.image || {};
+            const displayLabel = text.label || o.label;
+            const displayImage = img.url || o.image;
+            return (`
+              <div 
+                class="card-select-item derma-card-choose_concern" 
+                data-id="${this.escapeHtml(o.id)}"
+              >
+              <div 
+                class="derma-card-image-wrapper-choose_concern" 
+                style="
+                    width: ${img.width || 48}px; 
+                    height: ${img.height || 48}px; 
+                    border-radius: ${img.radius || 12}px;"
+              >
+                ${displayImage ? `<img src="${this.escapeHtml(displayImage)}" alt="" style="width: 100%; height: 100%; object-fit: cover;" />` : ""}
+              </div>
+              <div>
+                <div 
+                  class="derma-card-title-choose_concern"
+                  style="
+                  color: ${text.textColor || '#111827'}; 
+                  font-size: ${text.fontSize || 14}px; 
+                  font-weight: ${text.fontWeight || '600'};
+                  line-height: 1.2;"
+                >
+                  ${this.escapeHtml(displayLabel)}
+                </div>
+              </div>
+              </div>`)
+          }
         )
         .join("")}
     </div>`;
@@ -441,22 +508,11 @@ class DermaAIWizard {
     this.addUI(html, (root) => {
       root.querySelectorAll(".card-select-item").forEach((el) => {
         el.addEventListener("click", () => {
-          this.addUser(el.querySelector(".title").textContent);
+          const title = el.querySelector(".derma-card-title-choose_concern").textContent;
+          this.addUser(title);
 
           if (ui.step_id === "choose_concern") {
-            const isHair = el.dataset.id === "hair_assessment";
-            const flowFlag = isHair ? this.uiSettings?.flags?.hairEnabled : this.uiSettings?.flags?.skinEnabled;
-            const moduleEnabled = isHair
-              ? this.uiSettings?.modules?.hairCare?.enabled
-              : this.uiSettings?.modules?.skinCare?.enabled;
-
-            if (flowFlag === false || moduleEnabled === false) {
-              this.addBot("This module is currently disabled by the store admin.");
-              return;
-            }
-
-            this.state.activeFlow =
-              isHair ? "hair" : "skin";
+            this.state.activeFlow = el.dataset.id === "hair_assessment" ? "hair" : "skin";
             this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
           }
 
@@ -464,6 +520,34 @@ class DermaAIWizard {
         });
       });
     });
+  }
+
+  renderCardSelect(ui) {
+    console.log("render card----", ui)
+    if (ui.step_id === "choose_concern") {
+      this.renderCardChooseConcern(ui)
+    } else {
+      this.addUI(`
+        <div class="card-select-grid">
+          ${(ui.options || [])
+            .map(
+              (o) => `
+            <div class="card-select-item" data-id="${this.escapeHtml(o.id)}">
+              ${o.image ? `<img src="${this.escapeHtml(o.image)}" />` : ""}
+              <div class="derma-card-title">${this.escapeHtml(o.label)}</div>
+            </div>`
+            )
+            .join("")}
+        </div>
+      `);
+    
+      document.querySelectorAll(".card-select-item").forEach((el) => {
+        el.onclick = () => {
+          this.addUser(el.querySelector(".derma-card-title").textContent);
+          this.submitStep(ui.step_id, el.dataset.id);
+        };
+      });
+    }
   }
 
   renderPillList(ui) {
@@ -615,20 +699,19 @@ class DermaAIWizard {
 
               <div class="analysis-group-list">
                 ${(Array.isArray(group.conditions) ? group.conditions : [])
-                  .map(
-                    (condition) => `
+              .map(
+                (condition) => `
                       <div class="analysis-card">
                         <b>${this.escapeHtml(condition.name || "")}</b>
                         <div>${this.escapeHtml(condition.confidence || 0)}%</div>
-                        ${
-                          condition.location
-                            ? `<small>${this.escapeHtml(condition.location)}</small>`
-                            : ""
-                        }
+                        ${condition.location
+                    ? `<small>${this.escapeHtml(condition.location)}</small>`
+                    : ""
+                  }
                       </div>
                     `
-                  )
-                  .join("")}
+              )
+              .join("")}
               </div>
             </div>
           `
@@ -666,16 +749,15 @@ class DermaAIWizard {
             <div class="product-grid">
 
               ${(section.products || [])
-                .map((p) => {
-                  const variantId = (p.variantId || "").split("/").pop();
-                  const price = (p.price || "").replace("INR ", "");
-                  const mrp = (p.compareAtPrice || "").replace("INR ", "");
+              .map((p) => {
+                const variantId = (p.variantId || "").split("/").pop();
+                const price = (p.price || "").replace("INR ", "");
+                const mrp = (p.compareAtPrice || "").replace("INR ", "");
 
-                  return `
+                return `
                     <div class="product-card">
-                      <div class="badge ${
-                        p.recommendationType === "Recommended" ? "rec" : "alt"
-                      }">
+                      <div class="badge ${p.recommendationType === "Recommended" ? "rec" : "alt"
+                  }">
                         ${this.escapeHtml(p.recommendationType || "")}
                       </div>
                       <a href="${this.escapeHtml(p.url || "#")}" target="_blank" rel="noopener noreferrer">
@@ -686,11 +768,10 @@ class DermaAIWizard {
                       </div>
                       <div class="price">
                         ₹${this.escapeHtml(price)}
-                        ${
-                          mrp
-                            ? `<span>₹${this.escapeHtml(mrp)}</span>`
-                            : ""
-                        }
+                        ${mrp
+                    ? `<span>₹${this.escapeHtml(mrp)}</span>`
+                    : ""
+                  }
                       </div>
                       <button
                         type="button"
@@ -701,8 +782,8 @@ class DermaAIWizard {
                       </button>
                     </div>
                   `;
-                })
-                .join("")}
+              })
+              .join("")}
             </div>
           </div>
         `

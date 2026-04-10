@@ -108,7 +108,9 @@
         "bubbleBg": "Background Color",
         "bubbleColor": "Text Color",
         "fontWeight": "Font Weight",
-        "bubbleRadius": "Bubble Border Radius"
+        "bubbleRadius": "Bubble Border Radius",
+        "boat": "Boat",
+        "user": "User"
       },
       "preview": {
         "title": "Storefront Preview",

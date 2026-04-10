@@ -5,8 +5,8 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
   const { t } = useTranslation();
 
   const img_urls = {
-    skin_assessment: "https://res.cloudinary.com/daqajshsm/image/upload/v1765433722/Group_okm1lm.jpg",
-    hair_assessment: "https://res.cloudinary.com/daqajshsm/image/upload/v1765433778/Frame_dboqnw.jpg",
+    skinCare: "https://res.cloudinary.com/daqajshsm/image/upload/v1765433722/Group_okm1lm.jpg",
+    hairCare: "https://res.cloudinary.com/daqajshsm/image/upload/v1765433778/Frame_dboqnw.jpg",
   }
 
   function getWidgetStyles() {
@@ -19,6 +19,8 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
       borderRadius: `${data.widget.radius}px`,
     };
   }
+
+  console.log("wiodget preview", data)
 
   return (
     <div
@@ -143,14 +145,14 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
             style={{
               alignSelf: "flex-start",
               padding: "12px 16px",
-              backgroundColor: data.drawer.bubble.bgColor,
-              color: data.drawer.bubble.textColor,
-              fontSize: `${data.drawer.bubble.fontSize}px`,
-              fontWeight: data.drawer.bubble.fontWeight,
-              borderRadius: `${data.drawer.bubble.radius}px`,
+              backgroundColor: data.drawer.bubble.boat.bgColor,
+              color: data.drawer.bubble.boat.textColor,
+              fontSize: `${data.drawer.bubble.boat.fontSize}px`,
+              fontWeight: data.drawer.bubble.boat.fontWeight,
+              borderRadius: `${data.drawer.bubble.boat.radius}px`,
               borderBottomLeftRadius: "4px",
-              width: typeof data.drawer.bubble.width === 'number' ? `${data.drawer.bubble.width}px` : data.drawer.bubble.width,
-              minHeight: `${data.drawer.bubble.height}px`,
+              width: typeof data.drawer.bubble.boat.width === 'number' ? `${data.drawer.bubble.boat.width}px` : data.drawer.bubble.boat.width,
+              minHeight: `${data.drawer.bubble.boat.height}px`,
               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
               lineHeight: "1.5"
             }}
@@ -167,7 +169,7 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
               marginTop: "4px",
             }}
           >
-            {[
+            {/* {[
               {
                 id: "skinCare",
                 title: "Skin Assessment",
@@ -214,18 +216,74 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
                   <div style={{ color: "#6b7280", fontSize: "12px" }}>{item.subtitle}</div>
                 </div>
               </div>
-            ))}
+            ))} */}
+
+{ Object.keys(data.modules).length > 0 &&  
+  Object.entries(data.modules)
+  .filter(([_, config]) => config.enabled)
+  .map(([id, config]) => (
+    <div
+      key={id}
+      style={{
+        borderRadius: "16px",
+        padding: "12px",
+        // Logic for selection border
+        border: `1px solid ${type === id ? "#2563eb" : "#e5e7eb"}`,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        background: "#fff",
+        cursor: "pointer"
+      }}
+      onClick={() => setType(id)} // Assuming you want to select it
+    >
+      { console.log("dta----", id, config) }
+      {/* Dynamic Image Container */}
+      <div
+        style={{
+          width: `${config.image.width}px`,
+          height: `${config.image.height}px`,
+          borderRadius: `${config.image.radius}px`,
+          background: "#f3f4f6",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden", // Ensures image respects radius
+        }}
+      >
+        <img 
+          src={config.image.url || img_urls[`${id}`]} 
+          alt={config.text.label} 
+          style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+        />
+      </div>
+
+      {/* Dynamic Text Content */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+        <div 
+          style={{ 
+            fontWeight: config.text.fontWeight, 
+            color: config.text.textColor, 
+            fontSize: `${config.text.fontSize}px` 
+          }}
+        >
+          {config.text.label}
+        </div>
+      </div>
+    </div>
+  ))}
           </div>
 
           <div
             style={{
               alignSelf: "flex-end",
               padding: "12px 16px",
-              backgroundColor: data?.drawer?.bubble?.bgColor || "#ececec",
-              color: data?.drawer?.bubble?.textColor || "#333",
-              fontSize: `${data.drawer.bubble.fontSize}px`,
-              fontWeight: data.drawer.bubble.fontWeight,
-              borderRadius: `${data.drawer.bubble.radius}px`,
+              backgroundColor: data?.drawer?.bubble?.user.bgColor || "#ececec",
+              color: data?.drawer?.bubble?.user.textColor || "#333",
+              fontSize: `${data.drawer.bubble.user.fontSize}px`,
+              fontWeight: data.drawer.bubble.user.fontWeight,
+              borderRadius: `${data.drawer.bubble.user.radius}px`,
               borderBottomRightRadius: "4px",
               maxWidth: "80%",
               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",

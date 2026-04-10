@@ -39,7 +39,7 @@ export function ModuleSettings({ data, onChange }) {
           min={10}
           max={48}
           value={String(data?.text?.fontSize ?? 14)}
-          onChange={(val) => handleNumberChange("fontSize", val, 10, 48, "text")}
+          onChange={(val) => handleNumberChange("fontSize", val, 0, 48, "text")}
           autoComplete="off"
         />
         <TextField
@@ -54,7 +54,7 @@ export function ModuleSettings({ data, onChange }) {
           min={20}
           max={300}
           value={String(data?.image?.height ?? 50)}
-          onChange={(val) => handleNumberChange("height", val, 20, 300, "image")}
+          onChange={(val) => handleNumberChange("height", val, 0, 400, "image")}
           autoComplete="off"
         />
         <TextField
@@ -63,7 +63,7 @@ export function ModuleSettings({ data, onChange }) {
           min={20}
           max={300}
           value={String(data?.image?.width ?? 50)}
-          onChange={(val) => handleNumberChange("width", val, 20, 300, "image")}
+          onChange={(val) => handleNumberChange("width", val, 0, 400, "image")}
           autoComplete="off"
         />
         <TextField

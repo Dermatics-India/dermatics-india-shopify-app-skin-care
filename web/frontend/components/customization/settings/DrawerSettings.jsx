@@ -1,24 +1,30 @@
-import React from 'react'
+import React, { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
-import { BlockStack, TextField, Select, Text, Divider, Box } from "@shopify/polaris";
+import { BlockStack, TextField, Select, Text, Divider, Box, Tabs } from "@shopify/polaris";
 import { ColorInput } from "../../common/ColorInput";
+import { getClampedNumber } from '../../../utils';
 
 // hooks 
 import { useCustomizeData } from '../../../hooks/useCustomizeData';
+import { BubbleSettings } from './BubbleSettings';
 
 export const DrawerSettings = ({ data, onChange } ) => {
   const { t } = useTranslation()
-  const { fontOptions, fontWeightOptions } = useCustomizeData()
-  const handleNumberChange = (section, field, value, min, max) => {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed)) {
-      onChange(section, field, min);
-      return;
-    }
+  const { fontOptions, fontWeightOptions, bubbleTabs } = useCustomizeData()
 
-    const clamped = Math.max(min, Math.min(max, parsed));
-    onChange(section, field, clamped);
+  const [selectedTab, setSelectedTab] = useState(0);
+
+  const handleTabChange = useCallback(
+    (selectedTabIndex) => setSelectedTab(selectedTabIndex),
+    [],
+  );
+
+  const handleNumberChange = (path, value, min, max) => {
+    const val = getClampedNumber(value, min, max)
+    onChange(path, val);
   };
+
+  console.log("data:::drawer settings", data)
 
   return (
     <BlockStack gap="">
@@ -31,11 +37,11 @@ export const DrawerSettings = ({ data, onChange } ) => {
           <ColorInput
             label={t("Customization.settings.drawer.drawerBg")}
             value={data.drawer.bgColor}
-            onChange={(val) => onChange(null, "bgColor", val)}
+            onChange={(val) => onChange(["bgColor"], val)}
           />
         </Box>
       </BlockStack>
-      <Divider borderWidth="050" />
+      <Divider borderWidth="0165" />
 
 
       {/* <Card padding="400"> */}
@@ -53,7 +59,7 @@ export const DrawerSettings = ({ data, onChange } ) => {
               label={t("Customization.settings.drawer.fontFamily")}
               options={fontOptions}
               value={data.drawer.header.fontFamily}
-              onChange={(val) => onChange("header", "fontFamily", val)}
+              onChange={(val) => onChange(["header", "fontFamily"], val)}
             />
             <TextField
               label={t("Customization.settings.drawer.fontSize")}
@@ -61,19 +67,19 @@ export const DrawerSettings = ({ data, onChange } ) => {
               min={12}
               max={32}
               value={String(data.drawer.header.fontSize ?? 18)}
-              onChange={(val) => handleNumberChange("header", "fontSize", val, 12, 32)}
+              onChange={(val) => handleNumberChange(["header", "fontSize"], val, 12, 32)}
               autoComplete="off"
             />
 
             <ColorInput
               label={t("Customization.settings.drawer.headerBg")}
               value={data.drawer.header.bgColor}
-              onChange={(val) => onChange("header", "bgColor", val)}
+              onChange={(val) => onChange(["header", "bgColor"], val)}
             />
             <ColorInput
               label={t("Customization.settings.drawer.headerColor")}
               value={data.drawer.header.textColor}
-              onChange={(val) => onChange("header", "textColor", val)}
+              onChange={(val) => onChange(["header", "textColor"], val)}
             />
           </BlockStack>
         </Box>
@@ -87,43 +93,27 @@ export const DrawerSettings = ({ data, onChange } ) => {
           <Text variant="headingMd" as="h3">{t("Customization.settings.drawer.bubbles")}</Text>
         </Box>
         <Divider />
-        <Box padding={'400'}>
-          <BlockStack gap="400">
-            <ColorInput
-              label={t("Customization.settings.drawer.bubbleBg")}
-              value={data.drawer.bubble.bgColor}
-              onChange={(val) => onChange("bubble", "bgColor", val)}
-            />
-            <ColorInput
-              label={t("Customization.settings.drawer.bubbleColor")}
-              value={data.drawer.bubble.textColor}
-              onChange={(val) => onChange("bubble", "textColor", val)}
-            />
-            <TextField
-              label={t("Customization.settings.drawer.fontSize")}
-              type="number"
-              min={10}
-              max={24}
-              value={String(data.drawer.bubble.fontSize ?? 14)}
-              onChange={(val) => handleNumberChange("bubble", "fontSize", val, 10, 24)}
-              autoComplete="off"
-            />
-            <Select
-              label={t("Customization.settings.drawer.fontWeight")}
-              options={fontWeightOptions}
-              value={data.drawer.bubble.fontWeight}
-              onChange={(val) => onChange("bubble", "fontWeight", val)}
-            />
-            <TextField
-              label={t("Customization.settings.drawer.bubbleRadius")}
-              type="number"
-              min={0}
-              max={30}
-              value={String(data.drawer.bubble.radius ?? 12)}
-              onChange={(val) => handleNumberChange("bubble", "radius", val, 0, 30)}
-              autoComplete="off"
-            />
-          </BlockStack>
+
+        <Box padding={''}>
+          <Tabs tabs={bubbleTabs} selected={selectedTab} onSelect={handleTabChange} />
+          <Divider borderWidth='0165'/>
+          <Box padding={"400"}>
+          {selectedTab === 0 ? (
+          <BubbleSettings
+            fontWeightOptions={fontWeightOptions}
+            data={data.drawer.bubble.boat} 
+            pathPrefix={["bubble", "boat"]}
+            onChange={onChange}
+          />) : (
+            <BubbleSettings
+                fontWeightOptions={fontWeightOptions}
+                data={data.drawer.bubble.user} 
+                pathPrefix={["bubble", "user"]}
+                onChange={onChange}
+              />
+          )}
+
+          </Box>
         </Box>
       </BlockStack>
     </BlockStack>

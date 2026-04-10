@@ -813,3 +813,29 @@
 .derma-ai-launcher:active {
   transform: translateY(0) scale(0.98);
 }
+
+/* new added classses  */
+.derma-card-choose_concern {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.derma-card-image-wrapper-choose_concern {
+  width: 50px; 
+  height: 50px; 
+  border-radius: 15px; 
+  overflow: hidden; 
+  flex-shrink: 0;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

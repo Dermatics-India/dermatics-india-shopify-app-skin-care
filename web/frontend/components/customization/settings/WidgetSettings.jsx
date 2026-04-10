@@ -29,12 +29,6 @@ export function WidgetSettings({ data, onChange }) {
               onChange={(val) => onChange("buttonText", val)}
               autoComplete="off"
             />
-            <Select
-              label={t("Customization.settings.widget.fontWeight")}
-              options={fontWeightOptions}
-              value={data.widget.fontWeight}
-              onChange={(val) => onChange("fontWeight", val)}
-            />
             <TextField
               label={t("Customization.settings.widget.fontSize")}
               type="number"
@@ -44,6 +38,13 @@ export function WidgetSettings({ data, onChange }) {
               onChange={(val) => handleNumberChange("fontSize", val, 10, 36)}
               autoComplete="off"
             />
+            <Select
+              label={t("Customization.settings.widget.fontWeight")}
+              options={fontWeightOptions}
+              value={data.widget.fontWeight}
+              onChange={(val) => onChange("fontWeight", val)}
+            />
+            
 
             <TextField
               label={t("Customization.settings.widget.paddingX")}

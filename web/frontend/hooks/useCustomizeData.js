@@ -19,9 +19,24 @@ export const useCustomizeData = () => {
         { label: t("cmn.serif"), value: "serif" },
         { label: t("cmn.monospace"), value: "monospace" },
     ];
+
+    const bubbleTabs = [
+        {
+          id: 'boat-bubble',
+          content: t("Customization.settings.drawer.boat"), // You can use t("...") here
+          accessibilityLabel: 'Boat bubble settings',
+          panelID: 'boat-bubble-panel',
+        },
+        {
+          id: 'user-bubble',
+          content: t("Customization.settings.drawer.user"),
+          accessibilityLabel: 'User bubble settings',
+          panelID: 'user-bubble-panel',
+        },
+    ];
     
 
 
-    return { tabs, fontWeightOptions, fontOptions }
+    return { tabs, fontWeightOptions, fontOptions, bubbleTabs }
     
 }

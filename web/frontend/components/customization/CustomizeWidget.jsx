@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Page, Layout, Card, Box, Tabs, Divider, Scrollable } from "@shopify/polaris";
 import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
+import { produce } from "immer";
 
 // hooks 
 import { useCustomizeData } from "../../hooks/useCustomizeData";
@@ -19,6 +20,7 @@ import { defaultSettings } from "../../data/customization";
 
 // ENDPOINTS
 import { ENDPOINTS } from "../../utils/endpoints";
+
 
 export function CustomizeWidget({ type }) {
   const shopify = useAppBridge();
@@ -47,21 +49,29 @@ export function CustomizeWidget({ type }) {
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(prevSettings);
 
+  console.log("settings:::", settings)
+
   const getSettingsData = () => {
     setPageLoading(true)
     api.get(ENDPOINTS.GET_SETTINGS, { type })
       .then(res => {
-        const settingsObj = isCustomizePage
-          ? {
-              widget: res?.data?.widget || fallbackSettings?.widget,
-              drawer: res?.data?.drawer || fallbackSettings?.drawer,
-            }
-          : {
-              widget: res?.data?.widget || fallbackSettings?.widget,
-              drawer: res?.data?.drawer || fallbackSettings?.drawer,
-              modules: res?.data?.modules || fallbackSettings?.modules,
-              flags: res?.data?.flags || fallbackSettings?.flags,
-            };
+        // const settingsObj = isCustomizePage
+        //   ? {
+        //       widget: res?.data?.widget || fallbackSettings?.widget,
+        //       drawer: res?.data?.drawer || fallbackSettings?.drawer,
+        //     }
+        //   : {
+        //       widget: res?.data?.widget || fallbackSettings?.widget,
+        //       drawer: res?.data?.drawer || fallbackSettings?.drawer,
+        //       modules: res?.data?.modules || fallbackSettings?.modules,
+        //       flags: res?.data?.flags || fallbackSettings?.flags,
+        //     };
+        const settingsObj = {
+          widget: res?.data?.widget || fallbackSettings?.widget,
+          drawer: res?.data?.drawer || fallbackSettings?.drawer,
+          modules: res?.data?.modules || fallbackSettings?.modules,
+          flags: res?.data?.flags || fallbackSettings?.flags,
+        };
         setSettings(settingsObj)
         setPrevSettings(settingsObj)
       })
@@ -121,24 +131,19 @@ export function CustomizeWidget({ type }) {
     }));
   };
 
-  const handleDrawerChange = (section, field, value) => {
-    if (section) {
-      setSettings((prev) => ({
-        ...prev,
-        drawer: {
-          ...prev.drawer,
-          [section]: { 
-            ...prev.drawer[section], 
-            [field]: value
-          },
-        },
-      }));
-    } else {
-      setSettings((prev) => ({
-        ...prev,
-        drawer: { ...prev.drawer, [field]: value },
-      }));
-    }
+  const handleDrawerChange = (path, value) => {
+    // path would be an array, e.g., ["bubble", "boat", "height"]
+    setSettings(
+      produce((draft) => {
+        let current = draft.drawer;
+        // Navigate to the second-to-last key
+        for (let i = 0; i < path.length - 1; i++) {
+          current = current[path[i]];
+        }
+        // Update the value
+        current[path[path.length - 1]] = value;
+      })
+    );
   };
 
   const handleSave = () => {

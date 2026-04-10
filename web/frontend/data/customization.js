@@ -20,13 +20,24 @@ const baseConfig = {
       bgColor: "#333333",
     },
     bubble: {
-      height: 60,
-      width: "80%",
-      radius: 12,
-      bgColor: "#f4f4f4",
-      textColor: "#333333",
-      fontSize: 14,
-      fontWeight: "normal",
+      boat: {
+        height: 60,
+        width: "80%",
+        radius: 12,
+        bgColor: "#f4f4f4",
+        textColor: "#333333",
+        fontSize: 14,
+        fontWeight: "normal",
+      },
+      user: {
+        height: 60,
+        width: "80%",
+        radius: 12,
+        bgColor: "#f4f4f4",
+        textColor: "#333333",
+        fontSize: 14,
+        fontWeight: "normal",
+      }
     },
   },
 };

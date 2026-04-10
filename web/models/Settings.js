@@ -11,6 +11,16 @@ const widgetSchema = new mongoose.Schema({
   radius: { type: Number, default: 30 },
 }, { _id: false });
 
+const bubbleSchema = new mongoose.Schema({
+  height: { type: Number, default: 60 },
+    width: { type: String, default: "80%" },
+    radius: { type: Number, default: 12 },
+    bgColor: { type: String, default: "#f4f4f4" },
+    textColor: { type: String, default: "#333333" },
+    fontSize: { type: Number, default: 14 },
+    fontWeight: { type: String, default: "normal" },
+}, { _id: false })
+
 const drawerSchema = new mongoose.Schema({
   bgColor: { type: String, default: "#ffffff" },
   header: {
@@ -20,13 +30,8 @@ const drawerSchema = new mongoose.Schema({
     bgColor: { type: String, default: "#333333" },
   },
   bubble: {
-    height: { type: Number, default: 60 },
-    width: { type: String, default: "80%" },
-    radius: { type: Number, default: 12 },
-    bgColor: { type: String, default: "#f4f4f4" },
-    textColor: { type: String, default: "#333333" },
-    fontSize: { type: Number, default: 14 },
-    fontWeight: { type: String, default: "normal" },
+    boat: { type: bubbleSchema, default: () => ({})},
+    user: { type: bubbleSchema, default: () => ({})}
   },
 }, { _id: false });
 
