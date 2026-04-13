@@ -8,7 +8,18 @@
     "sansSerif": "Sans-Serif",
     "serif": "Serif",
     "monospace": "Monospace",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "change": "Change",
+    "positions": {
+      "bottomRight": "Bottom Right",
+      "bottomLeft": "Bottom Left",
+      "bottomCenter": "Bottom Center",
+      "topRight": "Top Right",
+      "topLeft": "Top Left",
+      "topCenter": "Top Center",
+      "middleRight": "Middle Right",
+      "middleLeft": "Middle Left"
+    }
   },
   "NavigationMenu": {
     "setupGuide": "Setup Guide",
@@ -64,18 +75,18 @@
       "skinCare": {
         "title": "Skin Care",
         "description": "Configure the skin analysis questions, visual results, and personalized product recommendations.",
-        "button": "Customize Skin Care"
+        "button": "Customize"
       },
       "hairCare": {
         "title": "Hair Care",
         "description": "Tailor the hair assessment questionnaire and treatment logic for various hair types and concerns.",
-        "button": "Customize Hair Care"
+        "button": "Customize"
       }
     },
     "settings": {
       "titleWidget": "Customize Widget",
-      "titleSkin": "Customize Skin Care Widget",
-      "titleHair": "Customize Hair Care Widget",
+      "titleSkin": "Customize Skin Care",
+      "titleHair": "Customize Hair Care",
       "back": "Back",
       "save": "Save Configuration",
       "success": "Configuration saved successfully!",
@@ -84,6 +95,7 @@
         "drawer": "Drawer Settings"
       },
       "widget": {
+        "position": "Position",
         "textLabel": "Text Label",
         "bgColor": "Background",
         "textColor": "Text/Icon Color",

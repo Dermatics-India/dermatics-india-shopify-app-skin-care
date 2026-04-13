@@ -7,7 +7,7 @@ import { useCustomizeData } from "../../../hooks/useCustomizeData";
 
 export function WidgetSettings({ data, onChange }) {
   const { t } = useTranslation()
-  const { fontWeightOptions } = useCustomizeData()
+  const { fontWeightOptions, widgetPositions } = useCustomizeData()
   const handleNumberChange = (field, value, min, max) => {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) {
@@ -23,6 +23,12 @@ export function WidgetSettings({ data, onChange }) {
     <Box padding="400">
       <BlockStack gap="400">
           <BlockStack gap="400">
+            <Select
+              label={t("Customization.settings.widget.position")}
+              options={widgetPositions}
+              value={data.widget.position}
+              onChange={(val) => onChange("position", val)}
+            />
             <TextField
               label={t("Customization.settings.widget.buttonText")}
               value={data.widget.buttonText}
@@ -35,7 +41,7 @@ export function WidgetSettings({ data, onChange }) {
               min={10}
               max={36}
               value={String(data.widget.fontSize ?? 16)}
-              onChange={(val) => handleNumberChange("fontSize", val, 10, 36)}
+              onChange={(val) => handleNumberChange("fontSize", val, 0, 36)}
               autoComplete="off"
             />
             <Select
@@ -52,7 +58,7 @@ export function WidgetSettings({ data, onChange }) {
               min={10}
               max={60}
               value={String(data.widget.paddingX ?? 24)}
-              onChange={(val) => handleNumberChange("paddingX", val, 10, 60)}
+              onChange={(val) => handleNumberChange("paddingX", val, 0, 60)}
               autoComplete="off"
             />
             <TextField
@@ -61,7 +67,7 @@ export function WidgetSettings({ data, onChange }) {
               min={4}
               max={40}
               value={String(data.widget.paddingY ?? 12)}
-              onChange={(val) => handleNumberChange("paddingY", val, 4, 40)}
+              onChange={(val) => handleNumberChange("paddingY", val, 0, 40)}
               autoComplete="off"
             />
             <TextField

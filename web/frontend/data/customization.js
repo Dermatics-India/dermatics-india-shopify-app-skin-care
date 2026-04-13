@@ -1,5 +1,6 @@
 const baseConfig = {
   widget: {
+    position: "bottom-right",
     buttonText: "Analyze Skin",
     bgColor: "#000000",
     textColor: "#ffffff",

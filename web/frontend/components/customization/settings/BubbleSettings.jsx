@@ -36,7 +36,7 @@ export const BubbleSettings = ({ data, onChange, pathPrefix, fontWeightOptions }
         label={t("Customization.settings.drawer.fontSize")}
         type="number"
         value={String(data.fontSize ?? 14)}
-        onChange={(val) => handleNumberChange("fontSize", val, 10, 24)}
+        onChange={(val) => handleNumberChange("fontSize", val, 0, 24)}
         autoComplete="off"
       />
 

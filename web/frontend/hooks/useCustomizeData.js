@@ -9,9 +9,17 @@ export const useCustomizeData = () => {
     ];
     
     const fontWeightOptions = [
-        { label: t("cmn.normal"), value: "normal" },
-        { label: t("cmn.bold"), value: "bold" },
-        { label: t("cmn.bolder"), value: "bolder" },
+        { label: "Normal", value: "normal" },
+        { label: "Bold", value: "bold" },
+        { label: "100", value: "100" },
+        { label: "200", value: "200" },
+        { label: "300", value: "300" },
+        { label: "400", value: "400" },
+        { label: "500", value: "500" },
+        { label: "600", value: "600" },
+        { label: "700", value: "700" },
+        { label: "800", value: "800" },
+        { label: "900", value: "900" },
     ];
     
     const fontOptions = [
@@ -34,9 +42,20 @@ export const useCustomizeData = () => {
           panelID: 'user-bubble-panel',
         },
     ];
+
+    const widgetPositions = [
+        { label: t("cmn.positions.bottomRight"), value: "bottom-right" },
+        { label: t("cmn.positions.bottomLeft"), value: "bottom-left" },
+        { label: t("cmn.positions.bottomCenter"), value: "bottom-center" },
+        { label: t("cmn.positions.topRight"), value: "top-right" },
+        { label: t("cmn.positions.topLeft"), value: "top-left" },
+        { label: t("cmn.positions.topCenter"), value: "top-center" },
+        { label: t("cmn.positions.middleRight"), value: "middle-right" },
+        { label: t("cmn.positions.middleLeft"), value: "middle-left" }
+    ];
     
 
 
-    return { tabs, fontWeightOptions, fontOptions, bubbleTabs }
+    return { tabs, fontWeightOptions, fontOptions, bubbleTabs, widgetPositions }
     
 }

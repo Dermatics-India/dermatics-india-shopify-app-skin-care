@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const widgetSchema = new mongoose.Schema({
+  position: { type: String, default: "bottom-right" },
   buttonText: { type: String, default: "Analyze Skin" },
   bgColor: { type: String, default: "#000000" },
   textColor: { type: String, default: "#ffffff" },

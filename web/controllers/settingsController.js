@@ -1,21 +1,20 @@
+import multer from "multer";
+
 import Settings from "../models/Settings.js";
-import Shop from "../models/Shop.js";
+import { uploadToShopify } from "../utils/shopifyFiles.js";
+
+const allowedModuleTypes = new Set(["skinCare", "hairCare"]);
+export const customizationImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
 
 // --- GET: Fetch settings for a specific shop ---
 export const getSettings = async (req, res) => {
   try {
-    const shopDomain = res.locals.shopify.session.shop;
-    // const requestedType = req.query.type;
-
-    if (!shopDomain) {
-      return res.status(400).json({ success: false, message: "Shop domain is required" });
-    }
-
-    // 1. Find the shop record first
-    const shopRecord = await Shop.findOne({ shop: shopDomain });
-    if (!shopRecord) {
-      return res.status(404).json({ success: false, message: "Shop not found" });
-    }
+    const { shopRecord } = res.locals;
 
     // 2. Find settings linked to that shop's ID
     const settings = await Settings.findOne({ shopId: shopRecord._id });
@@ -45,19 +44,8 @@ export const getSettings = async (req, res) => {
 // --- POST: Create or Update settings ---
 export const updateSettings = async (req, res) => {
   try {
-    const shopDomain = res.locals.shopify.session.shop;
-    // const { type, widget, drawer, modules, module, flags } = req.body;
+    const { shopRecord } = res.locals;
     const { widget, drawer, modules, flags } = req.body;
-    // const flowKey = resolveFlowKey(type);
-
-    if (!shopDomain) {
-      return res.status(400).json({ success: false, message: "Shop domain is required" });
-    }
-    // 1. Find the shop record to get the internal _id
-    const shopRecord = await Shop.findOne({ shop: shopDomain });
-    if (!shopRecord) {
-      return res.status(404).json({ success: false, message: "Shop not found" });
-    }
 
     const updatePayload = {};
     if (widget) updatePayload.widget = widget;
@@ -68,7 +56,6 @@ export const updateSettings = async (req, res) => {
       if (modules.skinCare) updatePayload["modules.skinCare"] = modules.skinCare;
       if (modules.hairCare) updatePayload["modules.hairCare"] = modules.hairCare;
     }
-
 
     const updatedSettings = await Settings.findOneAndUpdate(
       { shopId: shopRecord._id },
@@ -87,5 +74,44 @@ export const updateSettings = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Upload on shopify
+export const uploadCustomizationImage = async (req, res) => {
+  try {
+    // const { shopRecord } = res.locals;
+    const session = res.locals.shopify.session;
+    const moduleType = req.body?.moduleType;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file" });
+    }
+    if (!allowedModuleTypes.has(moduleType)) {
+      return res.status(400).json({ success: false, message: "Invalid moduleType" });
+    }
+
+    const cdnUrl = await uploadToShopify(
+      session,
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+    );
+
+    // const updatedSettings = await Settings.findOneAndUpdate(
+    //   { shopId: shopRecord._id },
+    //   { [`modules.${moduleType}.image.url`]: cdnUrl },
+    //   { upsert: true, new: true, setDefaultsOnInsert: true },
+    // );
+
+    return res.status(200).json({
+      success: true,
+      data: { url: cdnUrl, moduleType },
+      // url: cdnUrl,
+      // settings: updatedSettings,
+    });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };

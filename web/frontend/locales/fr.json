@@ -74,8 +74,8 @@
     },
     "settings": {
       "titleWidget": "Customize Widget",
-      "titleSkin": "Customize Skin Care Widget",
-      "titleHair": "Customize Hair Care Widget",
+      "titleSkin": "Customize Skin Care",
+      "titleHair": "Customize Hair Care",
       "back": "Back",
       "save": "Save Configuration",
       "success": "Configuration saved successfully!",

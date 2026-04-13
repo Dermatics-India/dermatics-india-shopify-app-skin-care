@@ -46,6 +46,7 @@ export function CustomizeWidget({ type }) {
   const [prevSettings, setPrevSettings] = useState(fallbackSettings)
   const [isPageLoading, setPageLoading] = useState(true); 
   const [isSavebarLoading, setSavebarLoading] = useState(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(prevSettings);
 
@@ -150,33 +151,44 @@ export function CustomizeWidget({ type }) {
     updateSettings(settings)
   };
 
-  const handleModuleChange = (section, field, value) => {
-    if (section) {
-      setSettings((prev) => ({
-        ...prev,
-        modules: {
-          ...prev.modules,
-          [currentModuleKey]: {
-            ...prev.modules[currentModuleKey],
-            [section]: {
-              ...prev.modules[currentModuleKey][section],
-              [field]: value,
-            },
-          }
-        },
-      }));
-      return;
-    }
-
-    setSettings((prev) => ({
-      ...prev,
-      modules: { 
-        ...prev.modules, 
-        [currentModuleKey]: {
-          ...prev.modules[currentModuleKey],
-          [field]: value },
+  const handleModuleChange = (path, value) => {
+    setSettings(
+      produce((draft) => {
+        const moduleDraft = draft.modules[currentModuleKey];
+        let current = moduleDraft;
+        for (let i = 0; i < path.length - 1; i++) {
+          current = current[path[i]];
         }
-    }));
+        current[path[path.length - 1]] = value;
+      })
+    );
+  };
+
+  const handleModuleImageUpload = async (file) => {
+    if (!file || !currentModuleKey) return;
+    setIsImageUploading(true);
+    console.log("file:::", file)
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("moduleType", currentModuleKey);
+      console.log("---steps-1")
+
+      const res = await api.postFormData(ENDPOINTS.UPLOAD_CUSTOMIZATION_IMAGE, formData);
+      console.log("---steps-2")
+      const uploadedUrl = res?.data?.url;
+      if (!uploadedUrl) {
+        throw new Error("Image upload failed");
+      }
+      console.log("---steps-3")
+      handleModuleChange(["image", "url"], uploadedUrl);
+      shopify.toast.show("Image uploaded");
+    } catch (error) {
+      console.log("handleModuleImageUpload::error")
+      shopify.toast.show(error.message || "Failed to upload image", { isError: true });
+    } finally {
+      setIsImageUploading(false);
+    }
   };
 
   const handleDiscard = () => {
@@ -242,6 +254,8 @@ export function CustomizeWidget({ type }) {
                 <ModuleSettings
                   data={settings.modules[type]}
                   onChange={handleModuleChange}
+                  onImageUpload={handleModuleImageUpload}
+                  isImageUploading={isImageUploading}
                 />
               }
             </Box>

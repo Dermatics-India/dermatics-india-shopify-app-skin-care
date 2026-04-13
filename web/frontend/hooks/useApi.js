@@ -6,16 +6,15 @@ export const useApi = () => {
    * @param {string} method - GET, POST, PUT, DELETE
    * @param {object} body - The data to send (optional)
    */
-  const request = async (url, method = "GET", body = null) => {
-    const options = {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
+  const request = async (url, method = "GET", body = null, isMultipart = false) => {
+    const options = { method, headers: {} };
+
+    if (!isMultipart) {
+      options.headers["Content-Type"] = "application/json";
+    }
 
     if (body) {
-      options.body = JSON.stringify(body);
+      options.body = isMultipart ? body : JSON.stringify(body);
     }
 
     return new Promise(async (resolve, reject) => {
@@ -41,6 +40,7 @@ export const useApi = () => {
   return {
     get: (url) => request(url, "GET"),
     post: (url, body) => request(url, "POST", body),
+    postFormData: (url, formData) => request(url, "POST", formData, true),
     put: (url, body) => request(url, "PUT", body),
     del: (url) => request(url, "DELETE"),
   };

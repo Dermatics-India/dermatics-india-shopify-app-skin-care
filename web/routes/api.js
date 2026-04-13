@@ -5,7 +5,14 @@ import proxyRoutes from "./proxy.js";
 
 // controllers 
 import { getAppEmbedStatus } from "../controllers/appEmbedController.js";
-import { getSettings, updateSettings } from '../controllers/settingsController.js'
+import {
+  getSettings,
+  updateSettings,
+  uploadCustomizationImage,
+  customizationImageUpload,
+} from "../controllers/settingsController.js";
+
+import { checkShop } from "../middleware/shopAuth.js";
 
 const router = express.Router();
 
@@ -14,13 +21,20 @@ const router = express.Router();
  * These require a valid Shopify session (embedded app)
  * Path: /api/admin/*
  */
-router.get("/app-embed-status", shopify.validateAuthenticatedSession(), getAppEmbedStatus);
+router.get("/app-embed-status", shopify.validateAuthenticatedSession(), checkShop, getAppEmbedStatus);
 
 // GET API 
-router.get("/settings", shopify.validateAuthenticatedSession(), getSettings);
+router.get("/settings", shopify.validateAuthenticatedSession(), checkShop, getSettings);
 
 // POST /api/settings
-router.post("/settings", shopify.validateAuthenticatedSession(), updateSettings);
+router.post("/settings", shopify.validateAuthenticatedSession(), checkShop, updateSettings);
+router.post(
+  "/customization/upload",
+  shopify.validateAuthenticatedSession(),
+  checkShop,
+  customizationImageUpload.single("image"),
+  uploadCustomizationImage,
+);
 
 /**
  * Public/User API Routes

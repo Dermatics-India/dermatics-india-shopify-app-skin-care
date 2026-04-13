@@ -31,7 +31,7 @@ class ApiHandler {
     try {
       const query = Object.keys(params).length
         ? `?${new URLSearchParams(params)}`
-        : "";
+        : "";   
 
       const res = await fetch(`${url}${query}`, {
         method: "GET",
@@ -149,6 +149,60 @@ class DermaAIWizard {
     Object.assign(el.style, styles);
   }
 
+  _applyPositioning(el, position = "bottom-right") {
+    el.style.position = "fixed";
+    const offset = "20px"; // Distance from edge
+  
+    // Reset defaults
+    el.style.top = "auto";
+    el.style.bottom = "auto";
+    el.style.left = "auto";
+    el.style.right = "auto";
+    el.style.transform = "none";
+  
+    switch (position) {
+      case "bottom-right":
+        el.style.bottom = offset;
+        el.style.right = offset;
+        break;
+      case "bottom-left":
+        el.style.bottom = offset;
+        el.style.left = offset;
+        break;
+      case "bottom-center":
+        el.style.bottom = offset;
+        el.style.left = "50%";
+        el.style.transform = "translateX(-50%)";
+        break;
+      case "top-right":
+        el.style.top = offset;
+        el.style.right = offset;
+        break;
+      case "top-left":
+        el.style.top = offset;
+        el.style.left = offset;
+        break;
+      case "top-center":
+        el.style.top = offset;
+        el.style.left = "50%";
+        el.style.transform = "translateX(-50%)";
+        break;
+      case "middle-right":
+        el.style.top = "50%";
+        el.style.right = "0";
+        el.style.transform = "translateY(-50%)";
+        break;
+      case "middle-left":
+        el.style.top = "50%";
+        el.style.left = "0";
+        el.style.transform = "translateY(-50%)";
+        break;
+      default:
+        el.style.bottom = offset;
+        el.style.right = offset;
+    }
+  }
+
   /* ---------- Full page proxy: suppress floating launcher ---------- */
 
   async _initLauncher() {
@@ -172,6 +226,7 @@ class DermaAIWizard {
     // Handle Icon vs Text display
     btn.textContent = config.buttonText || "Analyze Skin";
     this._applyDynamicStyles(btn, config);
+    this._applyPositioning(btn, config.position);
     // btn.style.cssText =  
     // "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
     btn.addEventListener("click", () => this.startSession());
@@ -254,6 +309,29 @@ class DermaAIWizard {
       return root.querySelector(`#${CSS.escape(id)}`);
     }
     return root.querySelector(`#${id}`);
+  }
+
+  _resolveAssetUrl(assetPath) {
+    if (!assetPath) return "";
+    if (/^https?:\/\//i.test(assetPath)) return assetPath;
+    const normalizedPath = assetPath.startsWith("/") ? assetPath : `/${assetPath}`;
+    const normalizedBaseUrl = String(this.baseUrl || "").replace(/\/$/, "");
+    return `${normalizedBaseUrl}${normalizedPath}`;
+  }
+
+  _isModuleEnabled(moduleKey) {
+    if (!moduleKey) return false;
+    if (moduleKey === "hairCare") {
+      const flagEnabled = this.uiSettings?.flags?.hairEnabled !== false;
+      const moduleEnabled = this.uiSettings?.modules?.hairCare?.enabled !== false;
+      return flagEnabled && moduleEnabled;
+    }
+    if (moduleKey === "skinCare") {
+      const flagEnabled = this.uiSettings?.flags?.skinEnabled !== false;
+      const moduleEnabled = this.uiSettings?.modules?.skinCare?.enabled !== false;
+      return flagEnabled && moduleEnabled;
+    }
+    return false;
   }
 
   renderChatUI() {
@@ -429,20 +507,8 @@ class DermaAIWizard {
   renderCardChooseConcern(ui) {
     const filteredOptions = (ui.options || []).filter((o) => {
       if (ui.step_id === "choose_concern") {
-        const isHair = o.id === "hair_assessment";
-        const isSkin = o.id === "skin_assessment";
-
-        if (isHair) {
-          const flag = this.uiSettings?.flags?.hairEnabled !== false;
-          const module = this.uiSettings?.modules?.hairCare?.enabled !== false;
-          return flag && module;
-        }
-
-        if (isSkin) {
-          const flag = this.uiSettings?.flags?.skinEnabled !== false;
-          const module = this.uiSettings?.modules?.skinCare?.enabled !== false;
-          return flag && module;
-        }
+        if (o.id === "hair_assessment") return this._isModuleEnabled("hairCare");
+        if (o.id === "skin_assessment") return this._isModuleEnabled("skinCare");
       }
       return true; // Show other options by default
     }).map((o) => {
@@ -472,7 +538,7 @@ class DermaAIWizard {
             const text = o.config?.text || {};
             const img = o.config?.image || {};
             const displayLabel = text.label || o.label;
-            const displayImage = img.url || o.image;
+            const displayImage = this._resolveAssetUrl(img.url) || this._resolveAssetUrl(o.image);
             return (`
               <div 
                 class="card-select-item derma-card-choose_concern" 
@@ -493,7 +559,7 @@ class DermaAIWizard {
                   style="
                   color: ${text.textColor || '#111827'}; 
                   font-size: ${text.fontSize || 14}px; 
-                  font-weight: ${text.fontWeight || '600'};
+                  font-weight: ${text.fontWeight || "normal"};
                   line-height: 1.2;"
                 >
                   ${this.escapeHtml(displayLabel)}
@@ -653,7 +719,18 @@ class DermaAIWizard {
   renderImageUpload(ui) {
     const inputId = `img-upload-${this.sanitizeDomId(this.state.sessionId || "session")}`;
 
-    const html = `<input type="file" id="${inputId}" accept="image/*" aria-label="Upload image" />`;
+    // const html = `<input type="file" id="${inputId}" accept="image/*" aria-label="Upload image" />`;
+    const html = `
+    <div class="derma-upload-container">
+      <input type="file" id="${inputId}" accept="image/*" aria-label="Upload image" style="display: none;" />
+      <label for="${inputId}" class="derma-upload-label">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>Upload Image</span>
+      </label>
+    </div>
+  `;
 
     this.addUI(html, (root) => {
       const input = this.queryById(root, inputId);

@@ -125,7 +125,7 @@
   max-width: 80%;
   font-size: 15px;
   line-height: 1.5;
-  /* box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); */
+  box-shadow: var(--derma-shadow);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -838,4 +838,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+
+/* upload Image style  */
+.derma-upload-container {
+  margin: 10px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.derma-upload-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #ffffff;
+  color: #2563EB;
+  border: 2px dashed #2563EB;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 250px;
+}
+
+.derma-upload-label:hover {
+  background: #F0F7FF;
+  transform: translateY(-1px);
+}
+
+.derma-upload-label:active {
+  transform: translateY(0px);
+}
+
+.derma-upload-label svg {
+  flex-shrink: 0;
 }

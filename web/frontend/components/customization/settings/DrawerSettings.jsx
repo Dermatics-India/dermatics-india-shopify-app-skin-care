@@ -67,7 +67,7 @@ export const DrawerSettings = ({ data, onChange } ) => {
               min={12}
               max={32}
               value={String(data.drawer.header.fontSize ?? 18)}
-              onChange={(val) => handleNumberChange(["header", "fontSize"], val, 12, 32)}
+              onChange={(val) => handleNumberChange(["header", "fontSize"], val, 0, 32)}
               autoComplete="off"
             />
 

@@ -90,7 +90,7 @@ app.use(express.json());
     AUTHENTICATED API ROUTES (Shopify Admin)
 ============================================================ */
 app.use("/api", apiRoutes);
-
+// app.use("/uploads", express.static(join(__dirname, "public", "uploads")));
 
 
 /* ============================================================
