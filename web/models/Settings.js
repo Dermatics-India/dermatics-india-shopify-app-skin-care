@@ -72,11 +72,11 @@ const settingsSchema = new mongoose.Schema({
       }),
     },
   },
-  flags: {
-    extensionEnabled: { type: Boolean, default: true },
-    skinEnabled: { type: Boolean, default: true },
-    hairEnabled: { type: Boolean, default: true },
-  },
+  // flags: {
+  //   extensionEnabled: { type: Boolean, default: true },
+  //   skinEnabled: { type: Boolean, default: true },
+  //   hairEnabled: { type: Boolean, default: true },
+  // },
 }, { timestamps: true });
 
 const Settings = mongoose.models.Settings || mongoose.model("Settings", settingsSchema);

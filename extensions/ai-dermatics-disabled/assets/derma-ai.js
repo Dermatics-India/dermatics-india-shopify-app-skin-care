@@ -31,7 +31,7 @@ class ApiHandler {
     try {
       const query = Object.keys(params).length
         ? `?${new URLSearchParams(params)}`
-        : "";   
+        : "";
 
       const res = await fetch(`${url}${query}`, {
         method: "GET",
@@ -78,12 +78,12 @@ class ApiHandler {
 class DermaAIWizard {
   static defaultFlowConfig() {
     return {
-      skin: {
+      skinCare: {
         flowType: "skin_flow",
         title: "AI Skin Advisor",
         welcome: "👋 Hello! I'm your Dermatics AI Skincare Assistant.",
       },
-      hair: {
+      hairCare: {
         flowType: "hair_flow",
         title: "AI Hair Advisor",
         welcome: "👋 Hi! I'm your Dermatics AI Hair Assistant.",
@@ -100,6 +100,7 @@ class DermaAIWizard {
       imageUpload: `${this.baseUrl}/api/flow/upload-image`,
       settings: `${this.proxy}/widget-settings`,
     };
+    this.customer = config.customer;
 
     this.api = new ApiHandler();
 
@@ -111,12 +112,16 @@ class DermaAIWizard {
     this.state = {
       sessionId: null,
       currentStep: null,
-      activeFlow: "skin",
+      activeFlow: "skinCare",
       isSubmitting: false,
       timeline: [],
     };
 
     this.uiSettings = {};
+    this.activeWidget = {
+      hairCare: false,
+      skinCare: false
+    }
 
     /** Cached once at construction; full-page embeds suppress the floating launcher */
     this.isFullPage = !!document.getElementById("derma-full-page-container");
@@ -152,14 +157,14 @@ class DermaAIWizard {
   _applyPositioning(el, position = "bottom-right") {
     el.style.position = "fixed";
     const offset = "20px"; // Distance from edge
-  
+
     // Reset defaults
     el.style.top = "auto";
     el.style.bottom = "auto";
     el.style.left = "auto";
     el.style.right = "auto";
     el.style.transform = "none";
-  
+
     switch (position) {
       case "bottom-right":
         el.style.bottom = offset;
@@ -206,7 +211,6 @@ class DermaAIWizard {
   /* ---------- Full page proxy: suppress floating launcher ---------- */
 
   async _initLauncher() {
-    console.log("flowConfig:::", this.flowConfig)
     const settings = await this.getSettings();
 
     // console.log("ui settings", settings);
@@ -237,13 +241,13 @@ class DermaAIWizard {
   async getSettings() {
     const res = await this.api.get(this.endpoints.settings);
     if (res?.error) {
-      console.error("DermaAIWizard API error", res);
+      // console.error("DermaAIWizard API error", res);
       this.uiSettings = {};
       return this.uiSettings;
     }
     const dataObj = res?.data || {};
 
-    console.log("settings:::response", dataObj);
+    // console.log("settings:::response", dataObj);
     this.uiSettings = dataObj;
     return dataObj;
   }
@@ -257,7 +261,7 @@ class DermaAIWizard {
     const drawer = document.createElement("div");
     drawer.id = "derma-ai-drawer";
 
-    console.log("config:::",  config)
+    console.log("config:::", config)
     // Apply Main Drawer Background
     drawer.style.backgroundColor = config.bgColor || "#ffffff";
 
@@ -334,6 +338,34 @@ class DermaAIWizard {
     return false;
   }
 
+  _getSystemStyles(status) {
+    const base = "margin: 10px; padding: 12px; border-radius: 8px; font-size: 13px; border: 1px solid; line-height: 1.4;";
+    switch (status) {
+      case 'error':
+        return `${base} background: #FEF2F2; color: #991B1B; border-color: #FEE2E2;`;
+      case 'success':
+        return `${base} background: #F0FDF4; color: #166534; border-color: #DCFCE7;`;
+      case 'warning':
+      default:
+        return `${base} background: #FFFBEB; color: #92400E; border-color: #FEF3C7;`;
+    }
+  }
+
+  _handleUnauthorizedAccess() {
+
+    this.state.timeline.push({
+      type: 'system',
+      status: 'warning', // used for styling
+      text: "⚠️ Please log in to your account to start your AI analysis. Redirecting to login page in few seconds...",
+    });
+
+    this.renderChatUI();
+
+    setTimeout(() => {
+      window.location.href = "/account/login";
+    }, 3000);
+  }
+
   renderChatUI() {
     const screen = document.getElementById("derma-ai-screen");
     if (!screen) return;
@@ -347,6 +379,13 @@ class DermaAIWizard {
         if (m.type === "user")
           return `<div class="chat-row user"><div class="bubble user-bubble">${m.text}</div></div>`;
         if (m.type === "ui") return `<div class="chat-ui-block">${m.html}</div>`;
+        if (m.type === "system") {
+          const styles = this._getSystemStyles(m.status); // error, warning, success
+          return `
+          <div class="chat-system-row" style="${styles}">
+            ${m.text}
+          </div>`;
+        }
         return "";
       })
       .join("");
@@ -376,6 +415,7 @@ class DermaAIWizard {
   }
 
   addUser(text) {
+    if (!text) return;
     this.state.timeline.push({ type: "user", text: this.escapeHtml(text) });
     this.renderChatUI();
   }
@@ -398,11 +438,44 @@ class DermaAIWizard {
     this.addBot(message || "Something went wrong. Please try again.");
   }
 
+  setWidgetStatus() {
+    const flags = this.uiSettings.flags || {};
+    const modules = this.uiSettings.modules || {}
+    const isActiveHairCare = (flags.hairEnabled !== false) && modules?.hairCare?.enabled
+    const isActiveSkinCare = (flags.skinEnabled !== false) && modules?.skinCare?.enabled
+    this.activeWidget.hairCare = isActiveHairCare;
+    this.activeWidget.skinCare = isActiveSkinCare;
+  }
+
+  setActiveFlow() {
+    this.setWidgetStatus()
+    if (this.activeWidget.skinCare && this.activeWidget.hairCare) {
+      this.state.activeFlow = "skinCare"; // Default when both are active
+    } else if (this.activeWidget.skinCare) {
+      this.state.activeFlow = "skinCare";
+    } else if (this.activeWidget.hairCare) {
+      this.state.activeFlow = "hairCare";
+    } else {
+      console.warn("No active flows found in settings.");
+      this.state.timeline.push({
+        type: 'system',
+        status: 'warning', // used for styling
+        text: "⚠️ Modules Inactive. The Skin and Hair analysis features are currently disabled for this store.",
+      });
+
+      this.renderChatUI();
+      return "not-active"; // Exit if everything is disabled
+    }
+  }
+
   /* ---------- Session & submit ---------- */
 
   async startSession() {
-    this.state.activeFlow = "skin";
+    // console.log("start session", this.state)
     this.state.timeline = [];
+
+    console.log("flow type::", this.state.activeFlow)
+    // this.state.activeFlow = "skinCare";
 
     if (!this.isFullPage) {
       this.createDrawer();
@@ -413,12 +486,23 @@ class DermaAIWizard {
       if (screen) screen.innerHTML = "";
     }
 
+    if (!this.customer || !this.customer.id) {
+      this._handleUnauthorizedAccess();
+      return;
+    }
+
+    const res = this.setActiveFlow()
+    if (res === 'not-active') return;
+
     this.renderChatUI();
     this.addBot("⏳ Preparing your personalized assessment...");
 
+    console.log("timeline:::", this.state.timeline)
+
+
     const data = await this.api.post(this.endpoints.sessionStart, {
       platform: "web",
-      flowType: this.flowConfig.skin.flowType,
+      flowType: this.flowConfig.skinCare.flowType,
     });
 
     if (!data || data.error) {
@@ -529,17 +613,15 @@ class DermaAIWizard {
       return o;
     });
 
-    console.log("filteredOptions----", filteredOptions)
-
     const html = `
     <div class="card-select-grid">
       ${(filteredOptions)
         .map((o) => {
-            const text = o.config?.text || {};
-            const img = o.config?.image || {};
-            const displayLabel = text.label || o.label;
-            const displayImage = this._resolveAssetUrl(img.url) || this._resolveAssetUrl(o.image);
-            return (`
+          const text = o.config?.text || {};
+          const img = o.config?.image || {};
+          const displayLabel = text.label || o.label;
+          const displayImage = this._resolveAssetUrl(img.url) || this._resolveAssetUrl(o.image);
+          return (`
               <div 
                 class="card-select-item derma-card-choose_concern" 
                 data-id="${this.escapeHtml(o.id)}"
@@ -566,7 +648,7 @@ class DermaAIWizard {
                 </div>
               </div>
               </div>`)
-          }
+        }
         )
         .join("")}
     </div>`;
@@ -578,7 +660,7 @@ class DermaAIWizard {
           this.addUser(title);
 
           if (ui.step_id === "choose_concern") {
-            this.state.activeFlow = el.dataset.id === "hair_assessment" ? "hair" : "skin";
+            this.state.activeFlow = el.dataset.id === "hair_assessment" ? "hairCare" : "skinCare";
             this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
           }
 
@@ -589,24 +671,23 @@ class DermaAIWizard {
   }
 
   renderCardSelect(ui) {
-    console.log("render card----", ui)
     if (ui.step_id === "choose_concern") {
       this.renderCardChooseConcern(ui)
     } else {
       this.addUI(`
         <div class="card-select-grid">
           ${(ui.options || [])
-            .map(
-              (o) => `
+          .map(
+            (o) => `
             <div class="card-select-item" data-id="${this.escapeHtml(o.id)}">
               ${o.image ? `<img src="${this.escapeHtml(o.image)}" />` : ""}
               <div class="derma-card-title">${this.escapeHtml(o.label)}</div>
             </div>`
-            )
-            .join("")}
+          )
+          .join("")}
         </div>
       `);
-    
+
       document.querySelectorAll(".card-select-item").forEach((el) => {
         el.onclick = () => {
           this.addUser(el.querySelector(".derma-card-title").textContent);
@@ -990,32 +1071,54 @@ class DermaAIWizard {
   /* ---------- Shopify cart ---------- */
 
   async addToCart(variantId) {
-    if (!variantId) {
-      window.alert("Product variant missing");
-      return;
-    }
+    if (this.state.isSubmitting || !variantId) return;
 
-    try {
-      const res = await fetch("/cart/add.js", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: Number(variantId), quantity: 1 }),
-      });
+    this.state.isSubmitting = true;
 
-      if (!res.ok) {
-        let err = {};
-        try {
-          err = await res.json();
-        } catch {
-          /* ignore */
+    const cartRoute = (window.Shopify?.routes?.root || '/') + 'cart/add.js';
+    const formData = {
+      items: [{
+        id: Number(variantId),
+        quantity: 1
+      }]
+    };
+
+    fetch(cartRoute, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          // Handle Shopify error (e.g., out of stock)
+          this.state.timeline.push({
+            type: 'system',
+            status: 'error',
+            text: `❌ ${data.description || data.message || "Could not add to cart."}`
+          });
+        } else {
+          // Handle Success
+          this.state.timeline.push({
+            type: 'system',
+            status: 'success',
+            text: "✅ Added to cart! Redirecting..."
+          });
+          setTimeout(() => window.location.href = "/cart", 1500);
         }
-        window.alert(err.description || err.message || "Could not add to cart.");
-        return;
-      }
-    } catch (e) {
-      console.error("addToCart", e);
-      window.alert("Network error while adding to cart.");
-    }
+      })
+      .catch(err => {
+        // Handle Network error
+        this.state.timeline.push({
+          type: 'system',
+          status: 'error',
+          text: "❌ Network error. Please try again."
+        });
+      })
+      .finally(() => {
+        this.state.isSubmitting = false;
+        this.renderChatUI();
+      });
   }
 
   async addAllToCart(scopeRoot = document) {
@@ -1062,5 +1165,6 @@ if (typeof window !== "undefined") {
 /** Default singleton */
 const dermaAIWizard = new DermaAIWizard({
   proxy: "/apps/derma-advisor",
-  baseUrl: "https://app.dermatics.in"
+  baseUrl: "https://app.dermatics.in",
+  customer: window.DERMA_AI_CUSTOMER
 });

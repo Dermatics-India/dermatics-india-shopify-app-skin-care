@@ -1,2 +1,3 @@
 export { CategoryCard } from './CategoryCard';
-export { CustomizeWidget } from './CustomizeWidget';
+export { Customization } from './Customization';
+

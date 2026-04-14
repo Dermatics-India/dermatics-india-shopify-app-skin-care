@@ -3,6 +3,7 @@ import { Page, Layout, Card, Box, Tabs, Divider, Scrollable } from "@shopify/pol
 import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
 import { produce } from "immer";
+import { useNavigate } from "react-router-dom";
 
 // hooks 
 import { useCustomizeData } from "../../hooks/useCustomizeData";
@@ -22,9 +23,10 @@ import { defaultSettings } from "../../data/customization";
 import { ENDPOINTS } from "../../utils/endpoints";
 
 
-export function CustomizeWidget({ type }) {
+export function Customization({ type }) {
   const shopify = useAppBridge();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const api = useApi()
   const settingsSaveBarId = 'settings-save-bar'
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -50,23 +52,26 @@ export function CustomizeWidget({ type }) {
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(prevSettings);
 
-  console.log("settings:::", settings)
+  useEffect(() => {
+    // 1. Don't check until loading is finished
+    if (isPageLoading) return;
+    // 2. Define your access rules
+    // Example: if type is 'skin-care' but the flag is disabled, redirect
+    let hasAccess = false;
+    if (currentModuleKey === 'customize') hasAccess = true
+    if (currentModuleKey === 'skinCare') hasAccess = settings?.flags?.skinEnabled
+    if (currentModuleKey === 'hairCare') hasAccess = settings?.flags?.hairEnabled
+  
+    if (!hasAccess) {
+      shopify.toast.show("Upgrade your plan for use", { isError: true });
+      navigate('/customization'); // Use the navigate from react-router-dom
+    }
+  }, [settings, isPageLoading, currentModuleKey]);
 
   const getSettingsData = () => {
     setPageLoading(true)
     api.get(ENDPOINTS.GET_SETTINGS, { type })
       .then(res => {
-        // const settingsObj = isCustomizePage
-        //   ? {
-        //       widget: res?.data?.widget || fallbackSettings?.widget,
-        //       drawer: res?.data?.drawer || fallbackSettings?.drawer,
-        //     }
-        //   : {
-        //       widget: res?.data?.widget || fallbackSettings?.widget,
-        //       drawer: res?.data?.drawer || fallbackSettings?.drawer,
-        //       modules: res?.data?.modules || fallbackSettings?.modules,
-        //       flags: res?.data?.flags || fallbackSettings?.flags,
-        //     };
         const settingsObj = {
           widget: res?.data?.widget || fallbackSettings?.widget,
           drawer: res?.data?.drawer || fallbackSettings?.drawer,
@@ -133,15 +138,12 @@ export function CustomizeWidget({ type }) {
   };
 
   const handleDrawerChange = (path, value) => {
-    // path would be an array, e.g., ["bubble", "boat", "height"]
     setSettings(
       produce((draft) => {
         let current = draft.drawer;
-        // Navigate to the second-to-last key
         for (let i = 0; i < path.length - 1; i++) {
           current = current[path[i]];
         }
-        // Update the value
         current[path[path.length - 1]] = value;
       })
     );
@@ -167,24 +169,24 @@ export function CustomizeWidget({ type }) {
   const handleModuleImageUpload = async (file) => {
     if (!file || !currentModuleKey) return;
     setIsImageUploading(true);
-    console.log("file:::", file)
+    // console.log("file:::", file)
     try {
       const formData = new FormData();
       formData.append("image", file);
       formData.append("moduleType", currentModuleKey);
-      console.log("---steps-1")
+      // console.log("---steps-1")
 
       const res = await api.postFormData(ENDPOINTS.UPLOAD_CUSTOMIZATION_IMAGE, formData);
-      console.log("---steps-2")
+      // console.log("---steps-2")
       const uploadedUrl = res?.data?.url;
       if (!uploadedUrl) {
         throw new Error("Image upload failed");
       }
-      console.log("---steps-3")
+      // console.log("---steps-3")
       handleModuleChange(["image", "url"], uploadedUrl);
       shopify.toast.show("Image uploaded");
     } catch (error) {
-      console.log("handleModuleImageUpload::error")
+      // console.log("handleModuleImageUpload::error")
       shopify.toast.show(error.message || "Failed to upload image", { isError: true });
     } finally {
       setIsImageUploading(false);
@@ -217,7 +219,7 @@ export function CustomizeWidget({ type }) {
       }
     // primaryAction={{ content: t("Customization.settings.save"), onAction: handleSave }}
     // fullWidth
-    // backAction={{ content: t("Customization.settings.back"), url: "/customization" }}
+    backAction={{ content: t("Customization.settings.back"), onAction: () => navigate("/customization")  }}
     >
       <LoadingOverlay active={isSavebarLoading}>
       <Layout>

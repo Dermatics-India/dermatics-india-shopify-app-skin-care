@@ -1,8 +1,18 @@
-<div id="derma-ai-embed"></div>
 
-<script>
-  window.__DERMA_AI_EMBED_ENABLED__ = true;
-</script>
+{% if customer %}
+  <script>
+    window.DERMA_AI_CUSTOMER = {
+      id: {{ customer.id | json }},
+      email: {{ customer.email | json }},
+      firstName: {{ customer.first_name | json }},
+      lastName: {{ customer.last_name | json }},
+    };
+  </script>
+{% else %}
+  <script>
+    window.DERMA_AI_CUSTOMER = null;
+  </script>
+{% endif %}
 
 <link rel="stylesheet" href="{{ 'derma-ai.css' | asset_url }}">
 <script src="{{ 'derma-ai.js' | asset_url }}" defer></script>

@@ -13,6 +13,8 @@ import {
 } from "../controllers/settingsController.js";
 
 import { checkShop } from "../middleware/shopAuth.js";
+import { getShop } from "../controllers/shopController.js";
+import { getPlans } from "../controllers/billingController.js";
 
 const router = express.Router();
 
@@ -25,6 +27,7 @@ router.get("/app-embed-status", shopify.validateAuthenticatedSession(), checkSho
 
 // GET API 
 router.get("/settings", shopify.validateAuthenticatedSession(), checkShop, getSettings);
+router.get("/shop", shopify.validateAuthenticatedSession(), checkShop, getShop)
 
 // POST /api/settings
 router.post("/settings", shopify.validateAuthenticatedSession(), checkShop, updateSettings);
@@ -35,6 +38,9 @@ router.post(
   customizationImageUpload.single("image"),
   uploadCustomizationImage,
 );
+
+// plans / Billing 
+router.get("/plans", shopify.validateAuthenticatedSession(), checkShop, getPlans)
 
 /**
  * Public/User API Routes

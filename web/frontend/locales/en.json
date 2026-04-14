@@ -132,5 +132,9 @@
         "mockMessage": "Hello! Welcome to your digital consultation. Let's get started!"
       }
     }
+  },
+  "plans": {
+    "title": "Plans & Pricing",
+    "description": "Select a plan to activate the Dermatics AI widget on your storefront."
   }
 }

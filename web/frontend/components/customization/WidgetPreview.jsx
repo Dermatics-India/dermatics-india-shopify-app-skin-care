@@ -18,17 +18,6 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
     return `${window.location.origin}${url.startsWith("/") ? "" : "/"}${url}`;
   };
 
-  function getWidgetStyles() {
-    return {
-      backgroundColor: data.widget.bgColor,
-      color: data.widget.textColor,
-      fontSize: `${data.widget.fontSize}px`,
-      fontWeight: data.widget.fontWeight,
-      padding: `${data.widget.paddingY}px ${data.widget.paddingX}px`,
-      borderRadius: `${data.widget.radius}px`,
-    };
-  }
-
   const widgetStyle = getDynamicStyles(data, 'widget');
   const positionStyles = getWidgetPositionStyles(data.widget.position);
 
@@ -54,7 +43,6 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
         className="live-widget-button"
         onClick={() => setIsDrawerOpen(!isDrawerOpen)}
         style={{
-          // ...getWidgetStyles(),
           ...widgetStyle,
           ...positionStyles
         }}
@@ -144,7 +132,12 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
 
             {Object.keys(data.modules).length > 0 &&
               Object.entries(data.modules)
-                .filter(([_, config]) => config.enabled)
+                .filter(([_, config]) => {
+                  if (_ === "hairCare" && !data?.flags?.hairEnabled) return false
+                  if (_ === "skinCare" && !data?.flags?.skinEnabled) return false
+                  console.log("config.enabled:::", _, config, data)
+                  return config.enabled
+                })
                 .map(([id, config]) => (
                   <div
                     key={id}

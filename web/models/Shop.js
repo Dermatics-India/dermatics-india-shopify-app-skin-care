@@ -11,7 +11,7 @@ const shopSchema = new mongoose.Schema({
     extensions: {
         appEmebedEnabled: { type: Boolean, default: true },
     },
-    plan: { type: String, default: "free" },
+    activePlan: { type: String, default: "free" },
     installedAt: { type: Date, default: Date.now },
     uninstalledAt: { type: Date },
 });

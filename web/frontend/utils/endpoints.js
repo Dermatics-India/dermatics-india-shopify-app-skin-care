@@ -4,4 +4,5 @@ export const ENDPOINTS = {
     GET_SETTINGS: `${PREFIX}/settings`,
     UPDATE_SETTINGS: `${PREFIX}/settings`,
     UPLOAD_CUSTOMIZATION_IMAGE: `${PREFIX}/customization/upload`,
+    GET_SHOP: `${PREFIX}/shop`
 }
