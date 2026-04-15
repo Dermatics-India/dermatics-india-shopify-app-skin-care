@@ -10,7 +10,8 @@
     "dev": "shopify app dev",
     "info": "shopify app info",
     "generate": "shopify app generate",
-    "deploy": "shopify app deploy"
+    "deploy": "shopify app deploy",
+    "seed:plans": "node web/seeder/plansSeed.js"
   },
   "dependencies": {
     "@shopify/app-bridge": "^3.7.11",

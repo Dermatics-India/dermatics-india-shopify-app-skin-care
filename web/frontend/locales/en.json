@@ -135,6 +135,8 @@
   },
   "plans": {
     "title": "Plans & Pricing",
-    "description": "Select a plan to activate the Dermatics AI widget on your storefront."
+    "description": "Select a plan to activate the Dermatics AI widget on your storefront.",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade"
   }
 }

@@ -1,8 +1,8 @@
 export const PLAN_NAMES = {
-  FREE: "free",
-  SKIN_CARE: "skinCare",
-  HAIR_CARE: "hairCare",
-  COMBO: "combo",
+  FREE: "FREE",
+  SKIN_CARE: "SKIN_CARE",
+  HAIR_CARE: "HAIR_CARE",
+  COMBO: "COMBO",
 };
 
 export const PLAN_INTERVALS = {

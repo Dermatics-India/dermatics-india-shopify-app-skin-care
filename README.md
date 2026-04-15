@@ -240,3 +240,13 @@ pnpm dev --tunnel-url https://randomly-generated-hostname.trycloudflare.com:3000
     - [`useTranslation` hook](https://react.i18next.com/latest/usetranslation-hook)
     - [`Trans` component usage with components array](https://react.i18next.com/latest/trans-component#alternative-usage-components-array)
   - [i18n-ally VS Code extension](https://marketplace.visualstudio.com/items?itemName=Lokalise.i18n-ally)
+
+
+  ------------------------  NOTE --------------------------------------------
+
+while deploy app need to run steps: 
+
+- add value into the env varibales
+- run cmd: npm run dev
+- run cmd: npm run seed:plans
+

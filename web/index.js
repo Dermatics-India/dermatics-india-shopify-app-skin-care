@@ -103,7 +103,21 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (req, res, _next) => {
   try {
     const session = res.locals.shopify?.session;
 
-    if (session) {
+    if (!session) {
+      const sessionId = await shopify.api.session.getCurrentId({
+        isOnline: false,
+        rawRequest: req,
+        rawResponse: res,
+      });
+
+      if (sessionId) {
+        session = await shopify.config.sessionStorage.loadSession(sessionId);
+      }
+    }
+
+    // console.log("session:::", session)
+
+    if (session && session.shop) {
       console.log(`📡 [SESSION] Already have a valid session for: ${session.shop}. (Auth callback will be skipped)`);
       const updatedShop = await Shop.findOneAndUpdate(
         { shop: session.shop },

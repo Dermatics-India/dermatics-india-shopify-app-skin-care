@@ -14,7 +14,7 @@ import {
 
 import { checkShop } from "../middleware/shopAuth.js";
 import { getShop } from "../controllers/shopController.js";
-import { getPlans } from "../controllers/billingController.js";
+import { getPlans, getPlanSubscriptionUrl } from "../controllers/billingController.js";
 
 const router = express.Router();
 
@@ -41,6 +41,7 @@ router.post(
 
 // plans / Billing 
 router.get("/plans", shopify.validateAuthenticatedSession(), checkShop, getPlans)
+router.post("/billing/subscription", shopify.validateAuthenticatedSession(), checkShop, getPlanSubscriptionUrl)
 
 /**
  * Public/User API Routes
