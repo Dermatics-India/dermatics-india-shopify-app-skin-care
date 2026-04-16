@@ -71,12 +71,7 @@ const settingsSchema = new mongoose.Schema({
         text: { label: "Hair Analysis" },
       }),
     },
-  },
-  // flags: {
-  //   extensionEnabled: { type: Boolean, default: true },
-  //   skinEnabled: { type: Boolean, default: true },
-  //   hairEnabled: { type: Boolean, default: true },
-  // },
+  }
 }, { timestamps: true });
 
 const Settings = mongoose.models.Settings || mongoose.model("Settings", settingsSchema);

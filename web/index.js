@@ -16,7 +16,7 @@ if (!process.env.SHOPIFY_API_KEY) {
 import express from "express";
 import serveStatic from "serve-static";
 import shopify from "./shopify.js";
-import PrivacyWebhookHandlers from "./privacy.js";
+import webhookHandlers from "./webhook.js";
 import { connectDB } from './server.js'
 import Shop from "./models/Shop.js";
 import fs from "fs";
@@ -41,47 +41,46 @@ if (!fs.existsSync(uploadDir)) {
 await connectDB();
 
 /* ============================================================
-    SHOPIFY AUTH & WEBHOOKS (must be FIRST)
+    SHOPIFY AUTH & CALLBACK
 ============================================================ */
 
-// Webhooks need raw body — register BEFORE express.json()
-app.post(
-  shopify.config.webhooks.path,
-  shopify.processWebhooks({ webhookHandlers: PrivacyWebhookHandlers })
-);
-
-// OAuth begin
 app.get(shopify.config.auth.path, shopify.auth.begin());
 
-// OAuth callback — after auth, save/update shop in MongoDB
+// Keep this clean! afterAuth in shopify.js will handle the DB now.
 app.get(
   shopify.config.auth.callbackPath,
   shopify.auth.callback(),
-  async (req, res, next) => {
-    try {
-      const session = res.locals.shopify?.session;
-
-      if (session) {
-        await Shop.findOneAndUpdate(
-          { shop: session.shop },
-          {
-            shop: session.shop,
-            accessToken: session.accessToken,
-            isInstalled: true,
-            installedAt: new Date(),
-            uninstalledAt: null,
-          },
-          { upsert: true, new: true }
-        );
-        console.log(`✅ Shop saved/updated: ${session.shop}`);
-      }
-    } catch (err) {
-      console.error("❌ Error saving shop to DB:", err.message);
-    }
-    next();
-  },
   shopify.redirectToShopifyOrAppRoot()
 );
+
+
+
+// -----------------------------------------------
+//                   WEBHOOKS 
+// -----------------------------------------------
+// Webhooks need raw body — register BEFORE express.json()
+app.post(
+  shopify.config.webhooks.path,
+  shopify.processWebhooks({ webhookHandlers: webhookHandlers })
+);
+
+// app.post("/api/webhooks", async (req, res) => {
+//   try {
+//     // This will:
+//     //  - verify the webhook signature
+//     //  - parse headers/body
+//     //  - call the matching callback from privacy.js (onAppUninstall for APP_UNINSTALLED)
+//     const { topic, shop } = await authenticate.webhook(req);
+
+//     console.log("Webhook received:", topic, "from shop:", shop);
+
+//     res.status(200).send();
+//   } catch (error) {
+//     console.error("Error handling /api/webhooks:", error);
+//     // You can still respond 200 to avoid retries, depending on your strategy.
+//     res.status(200).send();
+//   }
+// });
 
 // JSON parsing for all remaining routes
 app.use(express.json());
@@ -98,50 +97,9 @@ app.use("/api", apiRoutes);
 ============================================================ */
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
-
-app.use("/*", shopify.ensureInstalledOnShop(), async (req, res, _next) => {
-  try {
-    const session = res.locals.shopify?.session;
-
-    if (!session) {
-      const sessionId = await shopify.api.session.getCurrentId({
-        isOnline: false,
-        rawRequest: req,
-        rawResponse: res,
-      });
-
-      if (sessionId) {
-        session = await shopify.config.sessionStorage.loadSession(sessionId);
-      }
-    }
-
-    // console.log("session:::", session)
-
-    if (session && session.shop) {
-      console.log(`📡 [SESSION] Already have a valid session for: ${session.shop}. (Auth callback will be skipped)`);
-      const updatedShop = await Shop.findOneAndUpdate(
-        { shop: session.shop },
-        {
-          shop: session.shop,
-          accessToken: session.accessToken,
-          isInstalled: true,
-          installedAt: new Date(),
-          uninstalledAt: null,
-        },
-        { upsert: true, new: true }
-      );
-      if (updatedShop) {
-        console.log(`✅ Database Sync Success: ${session.shop}`);
-      } else {
-        console.warn(`⚠️ Sync handled but no document returned for: ${session.shop}`);
-      }
-    } else {
-      console.warn("⚠️ No Shopify session found in res.locals.shopify. Session might not be initialized yet.");
-    }
-  } catch (err) {
-    console.error("❌ Database Sync Error:", err.message);
-  }
-
+app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
+  // This middleware now only handles the redirect/auth check.
+  // The DB sync happened in afterAuth already!
   const htmlFile = join(STATIC_PATH, "index.html");
   let html = fs.readFileSync(htmlFile, "utf8");
 
@@ -156,6 +114,65 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (req, res, _next) => {
     .set("Content-Type", "text/html")
     .send(html);
 });
+
+// app.use("/*", shopify.ensureInstalledOnShop(), async (req, res, _next) => {
+//   try {
+//     let session = res.locals.shopify?.session;
+//     console.log("insuer install:::")
+
+//     if (!session) {
+//       const sessionId = await shopify.api.session.getCurrentId({
+//         isOnline: false,
+//         rawRequest: req,
+//         rawResponse: res,
+//       });
+
+//       if (sessionId) {
+//         session = await shopify.config.sessionStorage.loadSession(sessionId);
+//       }
+//     }
+
+//     // console.log("session:::", session)
+
+//     if (session && session.shop) {
+//       console.log(`📡 [SESSION] Already have a valid session for: ${session.shop}. (Auth callback will be skipped)`);
+//       const updatedShop = await Shop.findOneAndUpdate(
+//         { shop: session.shop },
+//         {
+//           shop: session.shop,
+//           accessToken: session.accessToken,
+//           isInstalled: true,
+//           installedAt: new Date(),
+//           uninstalledAt: null,
+//         },
+//         { upsert: true, new: true }
+//       );
+//       if (updatedShop) {
+//         console.log(`✅ Database Sync Success: ${session.shop}`);
+//       } else {
+//         console.warn(`⚠️ Sync handled but no document returned for: ${session.shop}`);
+//       }
+//     } else {
+//       console.warn("⚠️ No Shopify session found in res.locals.shopify. Session might not be initialized yet.");
+//     }
+//   } catch (err) {
+//     console.error("❌ Database Sync Error:", err.message);
+//   }
+
+//   const htmlFile = join(STATIC_PATH, "index.html");
+//   let html = fs.readFileSync(htmlFile, "utf8");
+
+//   if (process.env.NODE_ENV !== "production") {
+//     html = html
+//       .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
+//       .replace("%VITE_API_URL%", process.env.SHOPIFY_APP_URL || "");
+//   }
+
+//   return res
+//     .status(200)
+//     .set("Content-Type", "text/html")
+//     .send(html);
+// });
 
 app.listen(PORT, () => {
   console.log(`🚀 Shopify Backend running on port ${PORT}`);

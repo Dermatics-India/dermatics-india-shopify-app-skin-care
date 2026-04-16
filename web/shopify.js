@@ -2,11 +2,14 @@ import { BillingInterval } from "@shopify/shopify-api";
 import { shopifyApp } from "@shopify/shopify-app-express";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-10";
 import { MongoDBSessionStorage } from "@shopify/shopify-app-session-storage-mongodb";
-import { PLAN_NAMES } from "./constant/index.js";
 
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+
+import webhookHandlers from "./webhook.js";
+import { PLAN_NAMES } from "./constant/index.js";
+import { onAppInstall } from "./controllers/authController.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,6 +58,7 @@ const shopify = shopifyApp({
       unstable_managedPricingSupport: true,
     },
     billing: billingConfig, 
+    // webhooks: webhookHandlers
   },
   auth: {
     path: "/api/auth",
@@ -64,6 +68,25 @@ const shopify = shopifyApp({
     path: "/api/webhooks",
   },
   sessionStorage: new MongoDBSessionStorage(new URL(DATABASE_URL.trim()), DATABASE_NAME),
+  hooks: {
+    // This is effectively your "APP_INSTALLED" handler
+    afterAuth: async ({ session, admin }) => {
+      try {
+        console.log("🚀 [AFTER_AUTH] Triggering installation logic for:", session.shop);
+        
+        // Pass the session and admin to your controller
+        await onAppInstall({ session, admin });
+
+        // Standard webhook registration
+        // await shopify.api.webhooks.register({ session });
+        await shopify.registerWebhooks({ session });
+        
+        console.log("✅ Webhooks registered successfully");
+      } catch (error) {
+        console.error("❌ Error in afterAuth hook:", error.message);
+      }
+    },
+  },
 });
 
 export default shopify;

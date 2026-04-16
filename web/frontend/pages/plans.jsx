@@ -21,8 +21,6 @@ const plans = () => {
   const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  console.log("plans:::", plans)
-
   useEffect(() => {
     // Fetch plans from the new API
     api.get(ENDPOINTS.GET_PLANS)
