@@ -19,15 +19,19 @@ export const onAppInstall = async ({ session, admin }) => {
                 isInstalled: true,
                 installedAt: new Date()
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after', }
         );
+
+        if (!shopRecord) {
+            throw new Error("Failed to create or retrieve shopRecord");
+        }
 
         await Settings.findOneAndUpdate(
             { shopId: shopRecord._id },
             {
                 shopId: shopRecord._id,
             },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
+            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
         );
 
         console.log(`🚀 [DATABASE] New installation stored for: ${shop}`);

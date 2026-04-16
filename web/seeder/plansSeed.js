@@ -15,7 +15,9 @@ import Plans from '../models/plans.js';
 
 const seedDatabase = async () => {
   try {
-    await mongoose.connect(process.env.DATABASE_URL);
+    const DATABASE_URL = process.env.DATABASE_URL;
+    const DATABASE_NAME = process.env.DATABASE_NAME;
+    await mongoose.connect(DATABASE_URL,  { dbName: DATABASE_NAME });
     
     // 1. Clear existing plans to avoid unique constraint errors (planId)
     await Plans.deleteMany({});
@@ -27,7 +29,7 @@ const seedDatabase = async () => {
 
     process.exit();
   } catch (error) {
-    console.error('Error seeding database:', error);
+    console.error('Error seeding Plans:', error);
     process.exit(1);
   }
 };

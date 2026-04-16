@@ -62,7 +62,7 @@ export const updateSettings = async (req, res) => {
       updatePayload,
       { 
         upsert: true, 
-        new: true, 
+        returnDocument: 'after', 
         setDefaultsOnInsert: true 
       }
     );

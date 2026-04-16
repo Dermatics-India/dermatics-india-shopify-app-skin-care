@@ -16,14 +16,19 @@ if (!process.env.SHOPIFY_API_KEY) {
 
 export const connectDB = async () => {
     const DATABASE_URL = process.env.DATABASE_URL;
+    const DATABASE_NAME = process.env.DATABASE_NAME;
     if (!DATABASE_URL) {
         console.error("❌ DATABASE_URL is missing in .env");
         process.exit(1);
     }
+    if (!DATABASE_NAME) {
+        console.error("❌ DATABASE_NAME is missing in .env — Mongoose would default to 'test' DB");
+        process.exit(1);
+    }
     try {
         dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
-        await mongoose.connect(DATABASE_URL);
-        console.log("MongoDB Connected...");
+        await mongoose.connect(DATABASE_URL, { dbName: DATABASE_NAME });
+        // console.log(`MongoDB Connected to DB: ${DATABASE_NAME}`);
     } catch (err) {
         if (err.message.includes("ETIMEDOUT") || err.message.includes("target machine actively refused it")) {
             console.log("👉 ACTION REQUIRED: Your local Firewall or ISP is blocking Port 27017.");

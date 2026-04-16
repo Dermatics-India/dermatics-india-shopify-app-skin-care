@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const widgetSchema = new mongoose.Schema({
   position: { type: String, default: "bottom-right" },
   buttonText: { type: String, default: "Analyze Skin" },
-  bgColor: { type: String, default: "#000000" },
+  bgColor: { type: String, default: "#0084ff" },
   textColor: { type: String, default: "#ffffff" },
   fontSize: { type: Number, default: 16 },
   fontWeight: { type: String, default: "normal" },
@@ -14,12 +14,12 @@ const widgetSchema = new mongoose.Schema({
 
 const bubbleSchema = new mongoose.Schema({
   height: { type: Number, default: 60 },
-    width: { type: String, default: "80%" },
-    radius: { type: Number, default: 12 },
-    bgColor: { type: String, default: "#f4f4f4" },
-    textColor: { type: String, default: "#333333" },
-    fontSize: { type: Number, default: 14 },
-    fontWeight: { type: String, default: "normal" },
+  width: { type: String, default: "80%" },
+  radius: { type: Number, default: 12 },
+  bgColor: { type: String, default: "#f4f4f4" },
+  textColor: { type: String, default: "#333333" },
+  fontSize: { type: Number, default: 14 },
+  fontWeight: { type: String, default: "normal" },
 }, { _id: false })
 
 const drawerSchema = new mongoose.Schema({
@@ -28,11 +28,11 @@ const drawerSchema = new mongoose.Schema({
     fontFamily: { type: String, default: "sans-serif" },
     fontSize: { type: Number, default: 18 },
     textColor: { type: String, default: "#ffffff" },
-    bgColor: { type: String, default: "#333333" },
+    bgColor: { type: String, default: "#0084ff" },
   },
   bubble: {
-    boat: { type: bubbleSchema, default: () => ({})},
-    user: { type: bubbleSchema, default: () => ({})}
+    boat: { type: bubbleSchema, default: () => ({ })},
+    user: { type: bubbleSchema, default: () => ({ bgColor: "#0084ff", textColor: "#ffffff" })}
   },
 }, { _id: false });
 
