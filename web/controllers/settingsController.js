@@ -1,6 +1,7 @@
 import multer from "multer";
 
 import Settings from "../models/Settings.js";
+import Shop from "../models/Shop.js";
 import { uploadToShopify } from "../utils/shopifyFiles.js";
 
 const allowedModuleTypes = new Set(["skinCare", "hairCare"]);
@@ -24,13 +25,6 @@ export const getSettings = async (req, res) => {
     }
 
     const data = settings.toObject();
-    const permissions = shopRecord?.permissions || {};
-
-    data.flags = {
-      ...(data.flags || {}),
-      skinEnabled: permissions.skinEnabled ?? data.flags?.skinEnabled ?? true,
-      hairEnabled: permissions.hairEnabled ?? data.flags?.hairEnabled ?? true,
-    };
 
     return res.status(200).json({
       success: true,
@@ -45,12 +39,11 @@ export const getSettings = async (req, res) => {
 export const updateSettings = async (req, res) => {
   try {
     const { shopRecord } = res.locals;
-    const { widget, drawer, modules, flags } = req.body;
+    const { widget, drawer, modules } = req.body;
 
     const updatePayload = {};
     if (widget) updatePayload.widget = widget;
     if (drawer) updatePayload.drawer = drawer;
-    if (flags) updatePayload.flags = flags;
 
     if (modules) {
       if (modules.skinCare) updatePayload["modules.skinCare"] = modules.skinCare;
@@ -60,12 +53,19 @@ export const updateSettings = async (req, res) => {
     const updatedSettings = await Settings.findOneAndUpdate(
       { shopId: shopRecord._id },
       updatePayload,
-      { 
-        upsert: true, 
-        returnDocument: 'after', 
-        setDefaultsOnInsert: true 
+      {
+        upsert: true,
+        returnDocument: 'after',
+        setDefaultsOnInsert: true
       }
     );
+
+    // Mark shop as customized on first save
+    if (!shopRecord.settings?.isCustomized) {
+      await Shop.findByIdAndUpdate(shopRecord._id, {
+        "settings.isCustomized": true,
+      });
+    }
 
     return res.status(200).json({
       success: true,

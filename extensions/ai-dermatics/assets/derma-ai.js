@@ -326,14 +326,14 @@ class DermaAIWizard {
   _isModuleEnabled(moduleKey) {
     if (!moduleKey) return false;
     if (moduleKey === "hairCare") {
-      const flagEnabled = this.uiSettings?.flags?.hairEnabled !== false;
+      const permEnabled = this.uiSettings?.permissions?.hairEnabled !== false;
       const moduleEnabled = this.uiSettings?.modules?.hairCare?.enabled !== false;
-      return flagEnabled && moduleEnabled;
+      return permEnabled && moduleEnabled;
     }
     if (moduleKey === "skinCare") {
-      const flagEnabled = this.uiSettings?.flags?.skinEnabled !== false;
+      const permEnabled = this.uiSettings?.permissions?.skinEnabled !== false;
       const moduleEnabled = this.uiSettings?.modules?.skinCare?.enabled !== false;
-      return flagEnabled && moduleEnabled;
+      return permEnabled && moduleEnabled;
     }
     return false;
   }
@@ -439,10 +439,10 @@ class DermaAIWizard {
   }
 
   setWidgetStatus() {
-    const flags = this.uiSettings.flags || {};
-    const modules = this.uiSettings.modules || {}
-    const isActiveHairCare = (flags.hairEnabled !== false) && modules?.hairCare?.enabled
-    const isActiveSkinCare = (flags.skinEnabled !== false) && modules?.skinCare?.enabled
+    const perms = this.uiSettings.permissions || {};
+    const modules = this.uiSettings.modules || {};
+    const isActiveHairCare = (perms.hairEnabled !== false) && modules?.hairCare?.enabled;
+    const isActiveSkinCare = (perms.skinEnabled !== false) && modules?.skinCare?.enabled;
     this.activeWidget.hairCare = isActiveHairCare;
     this.activeWidget.skinCare = isActiveSkinCare;
   }

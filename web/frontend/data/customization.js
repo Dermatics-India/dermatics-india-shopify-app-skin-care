@@ -77,9 +77,5 @@ export const defaultSettings = {
       },
     },
   },
-  flags: {
-    skinEnabled: true,
-    hairEnabled: true,
-  },
 };
 

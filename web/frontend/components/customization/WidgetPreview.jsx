@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { getWidgetPositionStyles, getDynamicStyles } from "../../utils";
 
-export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
+export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDrawerOpen }) {
   const { t } = useTranslation();
 
   const fallbackImages = {
@@ -20,8 +20,6 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
 
   const widgetStyle = getDynamicStyles(data, 'widget');
   const positionStyles = getWidgetPositionStyles(data.widget.position);
-
-  console.log("wiodget preview", data)
 
   return (
     <div className="widget-preview-container">
@@ -132,11 +130,10 @@ export function WidgetPreview({ type, data, isDrawerOpen, setIsDrawerOpen }) {
 
             {Object.keys(data.modules).length > 0 &&
               Object.entries(data.modules)
-                .filter(([_, config]) => {
-                  if (_ === "hairCare" && !data?.flags?.hairEnabled) return false
-                  if (_ === "skinCare" && !data?.flags?.skinEnabled) return false
-                  console.log("config.enabled:::", _, config, data)
-                  return config.enabled
+                .filter(([key, config]) => {
+                  if (key === "hairCare" && !permissions?.hairEnabled) return false;
+                  if (key === "skinCare" && !permissions?.skinEnabled) return false;
+                  return config.enabled;
                 })
                 .map(([id, config]) => (
                   <div

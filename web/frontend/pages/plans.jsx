@@ -43,7 +43,7 @@ const Plans = () => {
         }
       })
       .catch(() => {
-        setToast({ active: true, message: "Failed to load plans", error: true });
+        setToast({ active: true, message: t("plans.failedToLoad"), error: true });
       })
       .finally(() => setIsLoading(false));
   };
@@ -57,11 +57,11 @@ const Plans = () => {
     try {
       const res = await api.post(ENDPOINTS.SUBSCRIPTOIN, { planId });
       if (!res?.success) {
-        setToast({ active: true, message: res?.message || "Upgrade failed", error: true });
+        setToast({ active: true, message: res?.message || t("plans.upgradeFailed"), error: true });
         return;
       }
       if (res.downgraded) {
-        setToast({ active: true, message: res.message || "Plan updated", error: false });
+        setToast({ active: true, message: res.message || t("plans.planUpdated"), error: false });
         loadPlans();
         return;
       }
@@ -74,7 +74,7 @@ const Plans = () => {
         }
       }
     } catch (err) {
-      const message = err?.message || err?.errors?.[0]?.message || "Upgrade failed";
+      const message = err?.message || err?.errors?.[0]?.message || t("plans.upgradeFailed");
       setToast({ active: true, message, error: true });
     } finally {
       setPendingPlanId(null);
@@ -83,7 +83,7 @@ const Plans = () => {
 
   if (isLoading) {
     return (
-      <Page title="Plans">
+      <Page title={t("plans.loadingTitle")}>
         <Grid>
           {[1, 2, 3, 4].map((i) => (
             <Grid.Cell
@@ -113,8 +113,8 @@ const Plans = () => {
           </BlockStack>
 
           {trial?.inTrial && (
-            <Banner tone="info" title={`Free trial: ${trial.daysRemaining} day${trial.daysRemaining === 1 ? "" : "s"} remaining`}>
-              <p>You won't be charged until your trial ends on {new Date(trial.endsAt).toLocaleDateString()}.</p>
+            <Banner tone="info" title={t("plans.trialBanner.title", { days: trial.daysRemaining, count: trial.daysRemaining })}>
+              <p>{t("plans.trialBanner.description", { date: new Date(trial.endsAt).toLocaleDateString() })}</p>
             </Banner>
           )}
 
@@ -122,18 +122,18 @@ const Plans = () => {
             <Card>
               <BlockStack gap="300">
                 <InlineStack align="space-between" blockAlign="center">
-                  <Text variant="headingMd" as="h3">Current plan: {currentPlan.name}</Text>
+                  <Text variant="headingMd" as="h3">{t("plans.currentPlanLabel", { name: currentPlan.name })}</Text>
                   {currentPlan.isUnlimited ? (
-                    <Badge tone="success">Unlimited</Badge>
+                    <Badge tone="success">{t("plans.unlimited")}</Badge>
                   ) : (
-                    <Badge>{`${usage.count} / ${usage.limit} scans used`}</Badge>
+                    <Badge>{t("plans.scansUsed", { count: usage.count, limit: usage.limit })}</Badge>
                   )}
                 </InlineStack>
                 {!currentPlan.isUnlimited && (
                   <>
                     <ProgressBar progress={usageProgress} size="small" />
                     <Text variant="bodySm" tone="subdued">
-                      Resets {new Date(usage.periodEndsAt).toLocaleDateString()}
+                      {t("plans.resets", { date: new Date(usage.periodEndsAt).toLocaleDateString() })}
                     </Text>
                   </>
                 )}
@@ -151,16 +151,16 @@ const Plans = () => {
                   <BlockStack gap="400">
                     <InlineStack align="space-between" blockAlign="center">
                       <Text variant="headingLg" as="h2">{plan.name}</Text>
-                      {plan.current && <Badge tone="success">Current</Badge>}
+                      {plan.current && <Badge tone="success">{t("plans.current")}</Badge>}
                     </InlineStack>
 
                     <Text variant="heading2xl" as="p">
                       ${plan.price}
-                      <Text variant="bodySm" as="span" tone="subdued">/mo</Text>
+                      <Text variant="bodySm" as="span" tone="subdued">{t("plans.perMonth")}</Text>
                     </Text>
 
                     {plan.trialDays > 0 && !trial?.used && !plan.current && (
-                      <Badge tone="attention">{`${plan.trialDays}-day free trial`}</Badge>
+                      <Badge tone="attention">{t("plans.freeTrialBadge", { days: plan.trialDays })}</Badge>
                     )}
 
                     <List>

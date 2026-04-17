@@ -1,15 +1,6 @@
-
-uid = "d62d3b23-3b9f-bf3b-5810-4d02b7756bd0868ffc63"
-
 name = "ai-dermatics"
+uid = "d62d3b23-3b9f-bf3b-5810-4d02b7756bd0868ffc63"
 type = "theme"
-
-[[sections]]
-name = "AI Dermatics Embed"
-target = "theme"
-
-[[assets]]
-path = "assets/app-embed.js"
 
 [[blocks]]
 name = "AI Dermatics Embed"
@@ -20,6 +11,4 @@ file = "blocks/app-embed.liquid"
 name = "AI Header Icon (Header)"
 type = "header-icon"
 file = "blocks/ai-header-icon-block.liquid"
-
-
 

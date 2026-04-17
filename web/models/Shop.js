@@ -10,8 +10,9 @@ const shopSchema = new mongoose.Schema({
         skinEnabled: { type: Boolean, default: true },
         hairEnabled: { type: Boolean, default: true },
     },
-    extensions: {
-        appEmebedEnabled: { type: Boolean, default: false },
+    settings: {
+        appEmbedEnabled: { type: Boolean, default: false },
+        isCustomized: { type: Boolean, default: false },
     },
     subscription: {
         id: { type: String, default: null },

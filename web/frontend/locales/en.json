@@ -19,6 +19,17 @@
       "topCenter": "Top Center",
       "middleRight": "Middle Right",
       "middleLeft": "Middle Left"
+    },
+    "dateFilter": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7": "Last 7 days",
+      "last15": "Last 15 days",
+      "last30": "Last 30 days",
+      "custom": "Custom range",
+      "selectRange": "Select date range",
+      "apply": "Apply",
+      "cancel": "Cancel"
     }
   },
   "NavigationMenu": {
@@ -37,31 +48,42 @@
   },
   "SetupGuide": {
     "title": "Welcome! Let's get your store ready",
-    "subtitle": "Complete these quick steps to start providing automated skin care routines to your customers.",
-    "progress": "{{count}} of 4 steps completed",
+    "subtitle": "Complete these steps to start providing AI-powered skin & hair analysis to your customers.",
     "steps": {
       "step1": {
         "title": "Enable App Embed",
-        "description": "Activate the Skin Analysis extension in your theme editor to display the widget on your storefront.",
-        "button": "Enable in Theme Editor"
+        "description": "Activate the Dermatics AI widget in your Shopify theme editor. This adds the floating analysis button to your storefront so customers can start their skin or hair assessment.",
+        "button": "Open Theme Editor",
+        "refresh": "Check Status"
       },
       "step2": {
-        "title": "Customization",
-        "description": "Tailor the look and feel of the skin care widget to match your store's aesthetic.",
+        "title": "Customize Your Widget",
+        "description": "Personalize the widget's appearance — colors, text, positioning, and drawer style — to match your store's branding. You can also configure the skin care and hair care module cards.",
         "button": "Go to Customization"
       },
       "step3": {
-        "title": "Upload Branding",
-        "description": "Add your logo and brand colors to ensure a seamless experience for your customers.",
-        "button": "Add Branding"
-      },
-      "step4": {
-        "title": "Verify Product Mapping",
-        "description": "Match your catalog products to specific skin concerns and routine steps.",
-        "button": "Map Products"
+        "title": "Choose a Plan",
+        "description": "Select a plan that fits your store's needs. Free plans include limited monthly scans, while paid plans unlock unlimited usage, hair analysis, and priority support.",
+        "button": "View Plans"
       }
     },
-    "footer": "Need more help? Check out our <DocumentationLink>Setup Guide Documentation</DocumentationLink> or <SupportLink>Contact Support</SupportLink>."
+    "toast": {
+      "embedEnabled": "Widget is enabled on your storefront!",
+      "embedNotDetected": "Widget not detected yet. Make sure you saved in the theme editor."
+    },
+    "currentPlan": {
+      "title": "Your Plan",
+      "manage": "Manage Plan"
+    },
+    "completeBanner": {
+      "title": "You're all set!",
+      "description": "Your Dermatics AI widget is live and ready for customers. Visit your storefront to see it in action."
+    },
+    "footer": "Need help? Contact us at support@dermatics.in",
+    "badges": {
+      "done": "Done",
+      "actionNeeded": "Action needed"
+    }
   },
   "Customization": {
     "title": "Customize",
@@ -137,6 +159,50 @@
     "title": "Plans & Pricing",
     "description": "Select a plan to activate the Dermatics AI widget on your storefront.",
     "currentPlan": "Current Plan",
-    "upgrade": "Upgrade"
+    "upgrade": "Upgrade",
+    "loadingTitle": "Plans",
+    "failedToLoad": "Failed to load plans",
+    "upgradeFailed": "Upgrade failed",
+    "planUpdated": "Plan updated",
+    "trialBanner": {
+      "title": "Free trial: {{days}} day remaining",
+      "title_other": "Free trial: {{days}} days remaining",
+      "description": "You won't be charged until your trial ends on {{date}}."
+    },
+    "currentPlanLabel": "Current plan: {{name}}",
+    "unlimited": "Unlimited",
+    "scansUsed": "{{count}} / {{limit}} scans used",
+    "resets": "Resets {{date}}",
+    "current": "Current",
+    "perMonth": "/mo",
+    "freeTrialBadge": "{{days}}-day free trial"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Overview of your AI skin & hair analysis performance.",
+    "totalAnalyses": {
+      "title": "Total Analyses",
+      "change": "+12.5% from last month"
+    },
+    "completionRate": {
+      "title": "Completion Rate",
+      "change": "+3.2% from last month"
+    },
+    "avgDuration": {
+      "title": "Avg. Duration",
+      "change": "-8s from last month"
+    },
+    "conversionRate": {
+      "title": "Conversion Rate",
+      "change": "+1.8% from last month"
+    },
+    "revenue": {
+      "title": "Revenue",
+      "change": "+18.4% from last month"
+    },
+    "aov": {
+      "title": "AOV",
+      "change": "+5.1% from last month"
+    }
   }
 }

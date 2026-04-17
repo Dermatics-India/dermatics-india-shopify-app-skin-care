@@ -1,16 +1,14 @@
-import { useEffect, useState } from 'react';
-import { 
-  Page, 
-  Layout, 
-  BlockStack, 
-  Text, 
+import {
+  Page,
+  Layout,
+  BlockStack,
+  Text,
   Box
 } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useAppBridge } from '@shopify/app-bridge-react';
 
-// Components 
+// Components
 import { CategoryCard } from '../../components/customization';
 
 // Assets
@@ -18,29 +16,13 @@ import SkinCareIcon from "../../assets/skincare_cat.png";
 import HairCareIcon from "../../assets/haircare_cat.png";
 import customizeIcon from '../../assets/customize.png'
 
-// Hooks 
-import { useApi } from '../../hooks/useApi';
-import { ENDPOINTS } from '../../utils/endpoints';
+// Hooks
+import { useShop } from '../../components/providers/ShopProvider';
 
 const Customization = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const api = useApi()
-  const shopify = useAppBridge()
-
-  const [shopData, setShopData] = useState(null)
-
-  useEffect(() => {
-    api.get(ENDPOINTS.GET_SHOP)
-    .then((res) => {
-      console.log("res:::", res)
-      setShopData(res?.data)
-    })
-    .catch((err) => {
-      console.log("err", err)
-      shopify.toast.show("Failed to Fetch Shop")
-    })
-  }, [])
+  const { permissions } = useShop();
 
   return (
     <Page 
@@ -76,7 +58,7 @@ const Customization = () => {
               buttonText={t("Customization.categories.skinCare.button")}
               image={SkinCareIcon}
               onAction={() => navigate("/customization/skin")}
-              disabled={!shopData?.permissions?.skinEnabled}
+              disabled={!permissions?.skinEnabled}
             />
           </Layout.Section>
 
@@ -87,7 +69,7 @@ const Customization = () => {
               buttonText={t("Customization.categories.hairCare.button")}
               image={HairCareIcon}
               onAction={() => navigate("/customization/hair")}
-              disabled={!shopData?.permissions?.hairEnabled}
+              disabled={!permissions?.hairEnabled}
             />
           </Layout.Section>
         </Layout>

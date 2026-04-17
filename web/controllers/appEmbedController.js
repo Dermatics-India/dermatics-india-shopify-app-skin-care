@@ -1,63 +1,62 @@
 import shopify from "../shopify.js";
+import Shop from "../models/Shop.js";
 
 /**
- * Checks if the app embed widget is enabled in the current theme.
- * Works by fetching the main theme's 'config/settings_data.json' and searching for the block.
+ * Checks if the app embed widget is enabled in the current theme
+ * and syncs the result back to the Shop model.
  */
 export const getAppEmbedStatus = async (req, res) => {
   try {
     const session = res.locals.shopify.session;
+    const { shopRecord } = res.locals;
 
-    // 1. Get all themes and find the 'main' (published) theme
-    const response = await shopify.api.rest.Theme.all({
-      session: session,
-    });
+    const client = new shopify.api.clients.Rest({ session });
 
-    const themes = Array.isArray(response) ? response : (response?.data || []);
+    // 1. Get all themes and find the published (main) theme
+    const { body: themesBody } = await client.get({ path: "themes" });
+    const themes = themesBody?.themes || [];
     const mainTheme = themes.find((theme) => theme.role === "main");
 
     if (!mainTheme) {
-      return res.status(404).send({ isEnabled: false, error: "Main theme not found" });
+      return res.status(404).json({ success: false, isEnabled: false, message: "Main theme not found" });
     }
 
     // 2. Fetch the 'config/settings_data.json' asset
-    const responseAssets = await shopify.api.rest.Asset.all({
-      session: session,
-      theme_id: mainTheme.id,
-      asset: { key: "config/settings_data.json" },
+    const { body: assetBody } = await client.get({
+      path: `themes/${mainTheme.id}/assets`,
+      query: { "asset[key]": "config/settings_data.json" },
     });
 
+    const assetValue = assetBody?.asset?.value;
 
-    const assets = Array.isArray(responseAssets) ? responseAssets : (responseAssets?.data || []);
-
-    if (!assets || assets.length === 0) {
-      return res.status(404).send({ isEnabled: false, error: "Settings file not found" });
+    if (!assetValue) {
+      return res.status(404).json({ success: false, isEnabled: false, message: "Settings file not found" });
     }
 
-    const settingsData = JSON.parse(assets[0].value);
+    const settingsData = JSON.parse(assetValue);
     const blocks = settingsData?.current?.blocks || {};
-
-    const shopifyBlocks = Object.values(blocks)
-      .map((b) => b.type)
-      .filter((type) => type?.includes("shopify://apps"));
 
     // 3. Search for the 'ai-dermatics' app-embed block
     const appEmbedEnabled = Object.values(blocks).some((block) => {
       const type = block.type || "";
-      const isTargetApp = type.includes("ai-dermatics") || type.includes("ai-dermatics-disabled");
+      const isTargetApp = type.includes("ai-dermatics");
       const isAppEmbed = type.includes("app-embed");
       return isTargetApp && isAppEmbed && !block.disabled;
     });
 
-    res.status(200).send({ 
+    // 4. Sync embed status to Shop model
+    if (shopRecord) {
+      await Shop.findByIdAndUpdate(shopRecord._id, {
+        "settings.appEmbedEnabled": appEmbedEnabled,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
       isEnabled: appEmbedEnabled,
-      diagnostics: {
-        totalBlocks: Object.keys(blocks).length,
-        shopifyBlocks: shopifyBlocks
-      }
     });
   } catch (error) {
-    console.error("❌ Error checking app embed status:", error.message);
-    res.status(500).send({ isEnabled: false, error: error.message });
+    console.error("Error checking app embed status:", error.message);
+    res.status(500).json({ success: false, isEnabled: false, error: error.message });
   }
 };

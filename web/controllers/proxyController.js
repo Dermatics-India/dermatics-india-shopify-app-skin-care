@@ -34,10 +34,9 @@ export const getWidgetSettings = async (req, res) => {
     const data = settings.toObject();
     const permissions = shopRecord?.permissions || {};
 
-    data.flags = {
-      ...(data.flags || {}),
-      skinEnabled: permissions.skinEnabled ?? data.flags?.skinEnabled ?? true,
-      hairEnabled: permissions.hairEnabled ?? data.flags?.hairEnabled ?? true,
+    data.permissions = {
+      skinEnabled: permissions.skinEnabled ?? true,
+      hairEnabled: permissions.hairEnabled ?? true,
     };
 
     return res.status(200).json({

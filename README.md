@@ -247,6 +247,7 @@ pnpm dev --tunnel-url https://randomly-generated-hostname.trycloudflare.com:3000
 while deploy app need to run steps: 
 
 - add value into the env varibales
-- run cmd: npm run dev
 - run cmd: npm run seed:plans
+- run cmd: shopify app deploy (to push extension to shopify)
+- run cmd: npm run dev
 

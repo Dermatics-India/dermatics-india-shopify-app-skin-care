@@ -17,6 +17,7 @@ if (
 
 process.env.VITE_SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 process.env.VITE_API_URL = process.env.SHOPIFY_APP_URL;
+process.env.VITE_EXTENSION_UUID = process.env.EXTENSION_UUID || "d62d3b23-3b9f-bf3b-5810-4d02b7756bd0868ffc63";
 
 const proxyOptions = {
   target: `http://127.0.0.1:${process.env.BACKEND_PORT}`,

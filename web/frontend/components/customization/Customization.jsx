@@ -5,9 +5,10 @@ import { useTranslation } from "react-i18next";
 import { produce } from "immer";
 import { useNavigate } from "react-router-dom";
 
-// hooks 
+// hooks
 import { useCustomizeData } from "../../hooks/useCustomizeData";
 import { useApi } from "../../hooks/useApi";
+import { useShop } from "../providers/ShopProvider";
 
 // components 
 import { WidgetPreview } from "./WidgetPreview";
@@ -27,8 +28,9 @@ export function Customization({ type }) {
   const shopify = useAppBridge();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const api = useApi()
-  const settingsSaveBarId = 'settings-save-bar'
+  const api = useApi();
+  const { permissions } = useShop();
+  const settingsSaveBarId = 'settings-save-bar';
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const { tabs } = useCustomizeData()
@@ -40,7 +42,6 @@ export function Customization({ type }) {
         widget: defaultSettings.widget,
         drawer: defaultSettings.drawer,
         modules: defaultSettings.modules,
-        flags: defaultSettings.flags,
       };
   // Initial State matching the requested schema
   const [selectedTab, setSelectedTab] = useState(0);
@@ -53,20 +54,17 @@ export function Customization({ type }) {
   const isDirty = JSON.stringify(settings) !== JSON.stringify(prevSettings);
 
   useEffect(() => {
-    // 1. Don't check until loading is finished
     if (isPageLoading) return;
-    // 2. Define your access rules
-    // Example: if type is 'skin-care' but the flag is disabled, redirect
     let hasAccess = false;
-    if (currentModuleKey === 'customize') hasAccess = true
-    if (currentModuleKey === 'skinCare') hasAccess = settings?.flags?.skinEnabled
-    if (currentModuleKey === 'hairCare') hasAccess = settings?.flags?.hairEnabled
-  
+    if (currentModuleKey === 'customize') hasAccess = true;
+    if (currentModuleKey === 'skinCare') hasAccess = permissions?.skinEnabled;
+    if (currentModuleKey === 'hairCare') hasAccess = permissions?.hairEnabled;
+
     if (!hasAccess) {
       shopify.toast.show("Upgrade your plan for use", { isError: true });
-      navigate('/customization'); // Use the navigate from react-router-dom
+      navigate('/customization');
     }
-  }, [settings, isPageLoading, currentModuleKey]);
+  }, [permissions, isPageLoading, currentModuleKey]);
 
   const getSettingsData = () => {
     setPageLoading(true)
@@ -76,7 +74,6 @@ export function Customization({ type }) {
           widget: res?.data?.widget || fallbackSettings?.widget,
           drawer: res?.data?.drawer || fallbackSettings?.drawer,
           modules: res?.data?.modules || fallbackSettings?.modules,
-          flags: res?.data?.flags || fallbackSettings?.flags,
         };
         setSettings(settingsObj)
         setPrevSettings(settingsObj)
@@ -94,8 +91,7 @@ export function Customization({ type }) {
     const payload = {
         widget: settings.widget,
         drawer: settings.drawer,
-        modules: settings.modules, // Sending the full object { skinCare: ..., hairCare: ... }
-        // flags: settings.flags
+        modules: settings.modules,
       };
 
     api.post(ENDPOINTS.UPDATE_SETTINGS, payload)
@@ -105,7 +101,6 @@ export function Customization({ type }) {
           widget: data?.widget,
           drawer: data?.drawer,
           modules: data?.modules,
-          flags: data?.flags
         };
         setSettings(syncSettings)
         setPrevSettings(syncSettings)
@@ -273,6 +268,7 @@ export function Customization({ type }) {
                 <WidgetPreview
                   type={type}
                   data={settings}
+                  permissions={permissions}
                   isDrawerOpen={isDrawerOpen}
                   setIsDrawerOpen={setIsDrawerOpen}
                 />
