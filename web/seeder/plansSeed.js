@@ -19,7 +19,7 @@ const seedDatabase = async () => {
     const DATABASE_NAME = process.env.DATABASE_NAME;
     await mongoose.connect(DATABASE_URL,  { dbName: DATABASE_NAME });
     
-    // 1. Clear existing plans to avoid unique constraint errors (planId)
+    // 1. Clear existing plans to avoid duplicate _id on re-seed
     await Plans.deleteMany({});
     console.log('--- Old plans Removed ---');
 

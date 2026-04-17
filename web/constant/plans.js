@@ -1,40 +1,48 @@
-import { PLAN_NAMES, PLAN_INTERVALS } from "./index.js";
+import { PLAN_IDS, FEATURE_KEYS } from "./index.js";
 
 export const plansData = [
   {
-    planId: PLAN_NAMES.FREE,
+    _id: PLAN_IDS.FREE,
     name: "Free",
     price: 0,
     description: "Perfect for testing the AI flow.",
-    features: ["100 scans / month", "Basic Skin Analysis", "Standard Widget UI"],
+    features: ["10 scans / month", "Basic Skin & Hair Analysis", "Standard Widget UI"],
+    featureKeys: [FEATURE_KEYS.SKIN_ANALYSIS, FEATURE_KEYS.HAIR_ANALYSIS],
     isUnlimited: false,
-    usageLimit: 10
+    usageLimit: 10,
+    trialDays: 0,
   },
   {
-    planId: PLAN_NAMES.SKIN_CARE,
+    _id: PLAN_IDS.SKIN_CARE,
     name: "Skin Care",
     price: 19,
     description: "Dedicated skin diagnostic tools.",
-    features: ["Unlimited Skin Scans", "Custom UI Colors", "Advanced Skin Metrics"],
+    features: ["100 Skin Scans / month", "Custom UI Colors", "Advanced Skin Metrics", "7-day free trial"],
+    featureKeys: [FEATURE_KEYS.SKIN_ANALYSIS],
     isUnlimited: false,
-    usageLimit: 100
+    usageLimit: 100,
+    trialDays: 7,
   },
   {
-    planId: PLAN_NAMES.HAIR_CARE, 
+    _id: PLAN_IDS.HAIR_CARE,
     name: "Hair Care",
     price: 19,
     description: "Dedicated hair diagnostic tools.",
-    features: ["Unlimited Hair Scans", "Scalp Analysis", "Product Recommendations"],
+    features: ["100 Hair Scans / month", "Scalp Analysis", "Product Recommendations", "7-day free trial"],
+    featureKeys: [FEATURE_KEYS.HAIR_ANALYSIS],
     isUnlimited: false,
-    usageLimit: 100
+    usageLimit: 100,
+    trialDays: 7,
   },
   {
-    planId: PLAN_NAMES.COMBO, 
+    _id: PLAN_IDS.COMBO,
     name: "Combo",
     price: 29,
     description: "The complete Dermatics experience.",
-    features: ["Everything in Skin & Hair", "Priority AI Processing", "Custom Branding"],
-    isUnlimited: false,
-    usageLimit: 200
-  }
+    features: ["Unlimited Skin & Hair Scans", "Priority AI Processing", "Custom Branding", "14-day free trial"],
+    featureKeys: [FEATURE_KEYS.SKIN_ANALYSIS, FEATURE_KEYS.HAIR_ANALYSIS],
+    isUnlimited: true,
+    usageLimit: 0,
+    trialDays: 14,
+  },
 ];

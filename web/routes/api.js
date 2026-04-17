@@ -14,7 +14,7 @@ import {
 
 import { checkShop } from "../middleware/shopAuth.js";
 import { getShop } from "../controllers/shopController.js";
-import { getPlans, getPlanSubscriptionUrl } from "../controllers/billingController.js";
+import { getPlans, getPlanSubscriptionUrl, confirmBilling } from "../controllers/billingController.js";
 
 const router = express.Router();
 
@@ -39,9 +39,16 @@ router.post(
   uploadCustomizationImage,
 );
 
-// plans / Billing 
-router.get("/plans", shopify.validateAuthenticatedSession(), checkShop, getPlans)
-router.post("/billing/subscription", shopify.validateAuthenticatedSession(), checkShop, getPlanSubscriptionUrl)
+// plans / Billing
+router.get("/plans", shopify.validateAuthenticatedSession(), checkShop, getPlans);
+router.post(
+  "/billing/subscription",
+  shopify.validateAuthenticatedSession(),
+  checkShop,
+  getPlanSubscriptionUrl,
+);
+// Top-frame redirect from Shopify after merchant approves charge — no iframe session.
+router.get("/billing/confirm", confirmBilling);
 
 /**
  * Public/User API Routes

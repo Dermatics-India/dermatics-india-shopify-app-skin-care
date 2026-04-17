@@ -1,15 +1,13 @@
 import mongoose from "mongoose";
 
 const planSchema = new mongoose.Schema({
-    planId: {
-        type: String,
-        required: true,
-        unique: true,
-        uppercase: true // e.g., "COMBO"
+    _id: {
+        type: Number,
+        required: true
     },
     name: {
         type: String,
-        required: true // e.g., "Skin & Hair Combo"
+        required: true
     },
     description: {
         type: String
@@ -28,8 +26,12 @@ const planSchema = new mongoose.Schema({
         default: 'month'
     },
     features: {
-        type: [String], // Array of strings for the checkmarks
+        type: [String],
         required: true
+    },
+    featureKeys: {
+        type: [String],
+        default: []
     },
     isUnlimited: {
         type: Boolean,
@@ -37,9 +39,23 @@ const planSchema = new mongoose.Schema({
     },
     usageLimit: {
         type: Number,
-        default: 0 // e.g., 100 for Free, 0 for unlimited
+        default: 0
+    },
+    trialDays: {
+        type: Number,
+        default: 0
     }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: {
+        versionKey: false,
+        transform: (_doc, ret) => {
+            ret.id = ret._id;
+            delete ret._id;
+            return ret;
+        },
+    },
+});
 
 const Plans = mongoose.models.Plan || mongoose.model("Plan", planSchema);
 

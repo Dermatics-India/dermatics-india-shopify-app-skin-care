@@ -28,7 +28,6 @@ export const connectDB = async () => {
     try {
         dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
         await mongoose.connect(DATABASE_URL, { dbName: DATABASE_NAME });
-        // console.log(`MongoDB Connected to DB: ${DATABASE_NAME}`);
     } catch (err) {
         if (err.message.includes("ETIMEDOUT") || err.message.includes("target machine actively refused it")) {
             console.log("👉 ACTION REQUIRED: Your local Firewall or ISP is blocking Port 27017.");

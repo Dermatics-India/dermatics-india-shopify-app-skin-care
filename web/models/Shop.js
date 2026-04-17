@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { PLAN_IDS } from "../constant/index.js";
 
 const shopSchema = new mongoose.Schema({
     shop: { type: String, required: true, unique: true },
@@ -12,7 +13,22 @@ const shopSchema = new mongoose.Schema({
     extensions: {
         appEmebedEnabled: { type: Boolean, default: false },
     },
-    activePlan: { type: String, default: "free" },
+    subscription: {
+        id: { type: String, default: null },
+        planId: { type: Number, default: PLAN_IDS.FREE },
+        status: { type: String, default: null },
+        activatedAt: { type: Date, default: null },
+        cancelledAt: { type: Date, default: null },
+        // Trial window — set by Shopify when trialDays is passed to AppSubscriptionCreate.
+        trialEndsAt: { type: Date, default: null },
+        // Once a shop has consumed its trial we never grant another, even on re-subscribe.
+        trialUsed: { type: Boolean, default: false },
+    },
+    // Rolling 30-day usage window for the current plan's quota.
+    usage: {
+        count: { type: Number, default: 0 },
+        periodStart: { type: Date, default: Date.now },
+    },
     uninstalledAt: { type: Date, default: null },
 });
 

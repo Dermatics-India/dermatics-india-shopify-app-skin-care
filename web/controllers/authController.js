@@ -1,14 +1,14 @@
 
-// Models 
+// Models
 import Shop from "../models/Shop.js";
 import Settings from "../models/Settings.js";
 import shopify from "../shopify.js";
+import { PLAN_IDS, SUBSCRIPTION_STATUS } from "../constant/index.js";
 
 export const onAppInstall = async ({ session, admin }) => {
     try {
         const shop = session.shop;
         const accessToken = session.accessToken;
-        console.log("onAppInstall:::shop", shop)
 
         // init Shop 
         const shopRecord = await Shop.findOneAndUpdate(
@@ -42,12 +42,7 @@ export const onAppInstall = async ({ session, admin }) => {
 
 export const onAppUninstall = async (topic, shop, body, webhookId) => {
     try {
-        console.log("onAppUninstall:::shop", shop)
-        console.log("onAppUninstall:::body", body)
-        // 1. Mark the shop as uninstalled in our custom Shop model
-
         const shopRecord = await Shop.findOne({ shop });
-        console.log("shop records found::", shopRecord)
 
         if (shopRecord) {
             await Settings.deleteOne({ shopId: shopRecord._id });
@@ -56,6 +51,18 @@ export const onAppUninstall = async (topic, shop, body, webhookId) => {
             shopRecord.isInstalled = false;
             shopRecord.accessToken = null;
             shopRecord.uninstalledAt = new Date();
+            // Shopify auto-cancels AppSubscriptions on uninstall — reset our DB to match.
+            shopRecord.subscription = {
+                id: null,
+                planId: PLAN_IDS.FREE,
+                status: SUBSCRIPTION_STATUS.CANCELLED,
+                activatedAt: shopRecord.subscription?.activatedAt || null,
+                cancelledAt: new Date(),
+                trialEndsAt: null,
+                // Preserve trialUsed — re-installing should NOT grant another trial.
+                trialUsed: shopRecord.subscription?.trialUsed || false,
+            };
+            shopRecord.usage = { count: 0, periodStart: new Date() };
             await shopRecord.save();
         }
         console.log(`🗑️ [DATABASE] Shop record updated: ${shop}`);
