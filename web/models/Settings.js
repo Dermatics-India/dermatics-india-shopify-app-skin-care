@@ -13,8 +13,6 @@ const widgetSchema = new mongoose.Schema({
 }, { _id: false });
 
 const bubbleSchema = new mongoose.Schema({
-  height: { type: Number, default: 60 },
-  width: { type: String, default: "80%" },
   radius: { type: Number, default: 12 },
   bgColor: { type: String, default: "#f4f4f4" },
   textColor: { type: String, default: "#333333" },

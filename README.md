@@ -251,3 +251,16 @@ while deploy app need to run steps:
 - run cmd: shopify app deploy (to push extension to shopify)
 - run cmd: npm run dev
 
+
+
+<!-- Current styles keys:  -->
+bgColor
+textColor
+fontFamily
+fontSize
+fontWeight
+height
+width
+radius
+paddingX
+paddingY

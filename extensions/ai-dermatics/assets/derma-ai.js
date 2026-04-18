@@ -2,96 +2,73 @@
  * Generic API Handler for JSON and Multipart requests
  */
 class ApiHandler {
-  constructor(apiURL) {
-    // this.apiURL = apiURL.replace(/\/$/, ""); // Remove trailing slash if exists
-  }
+  constructor() { }
 
-  /**
-   * Standardized Response Handler
-   */
-  async #handleResponse(res) {
+  handleResponse(res) {
     const isJson = res.headers.get("content-type")?.includes("application/json");
-    const data = isJson ? await res.json().catch(() => ({})) : {};
 
-    if (!res.ok) {
-      return {
-        error: true,
-        status: res.status,
-        message: data.message || "Request failed",
-        ...data
-      };
-    }
-    return data;
-  }
-
-  /**
-   * GET Request with Query Params
-   */
-  async get(url, params = {}) {
-    try {
-      const query = Object.keys(params).length
-        ? `?${new URLSearchParams(params)}`
-        : "";
-
-      const res = await fetch(`${url}${query}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
+    return (isJson ? res.json().catch(() => ({})) : Promise.resolve({}))
+      .then((json) => {
+        if (!res.ok) {
+          return {
+            data: null,
+            error: json.message || json.error || `Error: ${res.status}`,
+          };
         }
+        // If the API nests data inside a 'data' key, we extract it; 
+        // otherwise, we return the whole object as data.
+        return {
+          data: json.data !== undefined ? json.data : json,
+          error: null,
+        };
       });
-
-      return await this.#handleResponse(res);
-    } catch (e) {
-      return { error: true, message: e.message };
-    }
   }
 
-  /**
-   * POST Request (JSON or Multipart)
-   */
-  async post(url, payload, isMultipart = false) {
-    try {
-      const headers = { "Accept": "application/json" };
-      // Only set Content-Type if it's NOT multipart
-      if (!isMultipart) {
-        headers["Content-Type"] = "application/json";
-      }
-      const options = {
-        method: "POST",
-        body: isMultipart ? payload : JSON.stringify(payload),
-        headers: headers
-      };
-
-      const res = await fetch(url, options);
-      return await this.#handleResponse(res);
-    } catch (e) {
-      return { error: true, message: e.message };
-    }
-  }
-}
-
-/**
- * DermaAIWizard — production-ready dermatology assessment flow.
- * UI rendering, API calls, and Shopify cart are encapsulated on the instance.
- */
-class DermaAIWizard {
-  static defaultFlowConfig() {
+  handleError(e) {
     return {
-      skinCare: {
-        flowType: "skin_flow",
-        title: "AI Skin Advisor",
-        welcome: "👋 Hello! I'm your Dermatics AI Skincare Assistant.",
-      },
-      hairCare: {
-        flowType: "hair_flow",
-        title: "AI Hair Advisor",
-        welcome: "👋 Hi! I'm your Dermatics AI Hair Assistant.",
-      },
+      data: null,
+      error: e.message || "Network request failed.",
     };
   }
 
-  constructor(config = {}) {
+
+
+  async get(url, params = {}) {
+    const query = Object.keys(params).length
+      ? `?${new URLSearchParams(params)}`
+      : "";
+
+    return fetch(`${url}${query}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      }
+    })
+      .then((res) => this.handleResponse(res))
+      .catch((err) => this.handleError(err));
+  }
+
+  async post(url, payload, isMultipart = false) {
+    const headers = { "Accept": "application/json" };
+    if (!isMultipart) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const options = {
+      method: "POST",
+      body: isMultipart ? payload : JSON.stringify(payload),
+      headers: headers
+    };
+
+    return fetch(url, options)
+      .then((res) => this.handleResponse(res))
+      .catch((err) => this.handleError(err));
+  }
+}
+
+class DermaApiService {
+  constructor(config) {
     this.baseUrl = config.baseUrl;
     this.proxy = config.proxy || "/apps/derma-advisor";  // Enable it While using Proxy 
     this.endpoints = {
@@ -100,9 +77,54 @@ class DermaAIWizard {
       imageUpload: `${this.baseUrl}/api/flow/upload-image`,
       settings: `${this.proxy}/widget-settings`,
     };
-    this.customer = config.customer;
 
+    // Instantiate your existing ApiHandler
     this.api = new ApiHandler();
+  }
+
+  async getSettings() {
+    return this.api.get(this.endpoints.settings)
+      .then((res) => { return res; })
+      .catch((err) => {
+        console.log("error:::", err)
+        return { success: false, error: err.message };
+      });
+  }
+
+  async startSession(payload) {
+    return this.api.post(this.endpoints.sessionStart, payload)
+      .then((res) => { return res; })
+      .catch((error) => {
+        return { success: false, error: err.message };
+      });
+  }
+
+  async submitStep(payload) {
+    return this.api.post(this.endpoints.flowSubmit, payload)
+      .then((res) => { return res; })
+      .catch((err) => {
+        return { data: null, error: err.message };
+      });
+  }
+
+  async uploadImage(formData) {
+  return this.api.post(this.endpoints.imageUpload, formData, true)
+    .then((res) => { return res; })
+    .catch((err) => {
+      return { data: null, error: err.message };
+    });
+}
+}
+
+/**
+ * DermaAIWizard — production-ready dermatology assessment flow.
+ * UI rendering, API calls, and Shopify cart are encapsulated on the instance.
+ */
+class DermaAIWizard {
+  constructor(config = {}) {
+    console.log("Run::constructor::start")
+    this.customer = config.customer;
+    this.apiService = new DermaApiService(config);
 
     this.flowConfig = DermaAIWizard.mergeFlowConfig(
       DermaAIWizard.defaultFlowConfig(),
@@ -118,15 +140,27 @@ class DermaAIWizard {
     };
 
     this.uiSettings = {};
-    this.activeWidget = {
-      hairCare: false,
-      skinCare: false
-    }
 
     /** Cached once at construction; full-page embeds suppress the floating launcher */
     this.isFullPage = !!document.getElementById("derma-full-page-container");
 
-    this.ready = this._initLauncher();
+    // this.ready = this._initLauncher();
+    console.log("Run::constructor::End")
+  }
+
+  static defaultFlowConfig() {
+    return {
+      skinCare: {
+        flowType: "skin_flow",
+        title: "AI Skin Advisor",
+        welcome: "👋 Hello! I'm your Dermatics AI Skincare Assistant.",
+      },
+      hairCare: {
+        flowType: "hair_flow",
+        title: "AI Hair Advisor",
+        welcome: "👋 Hi! I'm your Dermatics AI Hair Assistant.",
+      },
+    };
   }
 
   static mergeFlowConfig(base, override) {
@@ -136,6 +170,8 @@ class DermaAIWizard {
     }
     return out;
   }
+
+
 
   // ------ Reusable --------
   _applyDynamicStyles(el, styleObj) {
@@ -148,7 +184,9 @@ class DermaAIWizard {
       fontWeight: styleObj.fontWeight || 'normal',
       borderRadius: styleObj.radius ? `${styleObj.radius}px` : '',
       padding: (styleObj.paddingY && styleObj.paddingX) ? `${styleObj.paddingY}px ${styleObj.paddingX}px` : '',
-      fontFamily: styleObj.fontFamily || styleObj.font || "inherit"
+      fontFamily: styleObj.fontFamily || styleObj.font || "inherit",
+      height: typeof styleObj.height === 'number' ? `${styleObj.height}px` : (styleObj.height || ""),
+      width: typeof styleObj.width === 'number' ? `${styleObj.width}px` : (styleObj.width || ""),
     };
 
     Object.assign(el.style, styles);
@@ -210,19 +248,9 @@ class DermaAIWizard {
 
   /* ---------- Full page proxy: suppress floating launcher ---------- */
 
-  async _initLauncher() {
-    const settings = await this.getSettings();
-
-    // console.log("ui settings", settings);
-    // console.log("isFullPage", this.isFullPage);
-
-    if (this.isFullPage) {
-      console.log("Full-page proxy detected: floating launcher suppressed.");
-      return;
-    }
-    if (document.getElementById("derma-ai-launcher")) return;
-
-    const config = settings.widget || {};
+  // Luncher: Anaylses Widget Button 
+  createDermaLauncher(config) {
+    console.log("Run::createDermaLauncher")
     const btn = document.createElement("div");
     btn.id = "derma-ai-launcher";
     btn.className = "derma-ai-launcher";
@@ -231,25 +259,26 @@ class DermaAIWizard {
     btn.textContent = config.buttonText || "Analyze Skin";
     this._applyDynamicStyles(btn, config);
     this._applyPositioning(btn, config.position);
-    // btn.style.cssText =  
-    // "position:fixed;bottom:20px;right:20px;background:#2563EB;color:#fff;padding:14px 22px;border-radius:50px;cursor:pointer;z-index:999999;box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600;";
     btn.addEventListener("click", () => this.startSession());
     document.body.appendChild(btn);
+    return;
   }
 
-  /* ---------- API Calls ---------- */
-  async getSettings() {
-    const res = await this.api.get(this.endpoints.settings);
-    if (res?.error) {
-      // console.error("DermaAIWizard API error", res);
-      this.uiSettings = {};
-      return this.uiSettings;
-    }
-    const dataObj = res?.data || {};
+  async initLauncher() {
+    console.log("Run::initLauncher")
+    // First Called & Get settings 
+    const { data, error } = await this.apiService.getSettings();
+    if (error) return
+    this.uiSettings = data
 
-    // console.log("settings:::response", dataObj);
-    this.uiSettings = dataObj;
-    return dataObj;
+    if (this.isFullPage) {
+      console.log("Full-page proxy detected: floating launcher suppressed.");
+      return;
+    }
+    if (document.getElementById("derma-ai-launcher")) return;
+
+    const config = data?.widget || {};
+    this.createDermaLauncher(config)
   }
 
   /* ---------- DOM: drawer ---------- */
@@ -261,7 +290,7 @@ class DermaAIWizard {
     const drawer = document.createElement("div");
     drawer.id = "derma-ai-drawer";
 
-    console.log("config:::", config)
+    // console.log("config:::", config)
     // Apply Main Drawer Background
     drawer.style.backgroundColor = config.bgColor || "#ffffff";
 
@@ -351,15 +380,17 @@ class DermaAIWizard {
     }
   }
 
-  _handleUnauthorizedAccess() {
-
+  _addWarningToTimeline(message) {
     this.state.timeline.push({
       type: 'system',
-      status: 'warning', // used for styling
-      text: "⚠️ Please log in to your account to start your AI analysis. Redirecting to login page in few seconds...",
+      status: 'warning',
+      text: message,
     });
-
     this.renderChatUI();
+  }
+
+  _handleUnauthorizedAccess() {
+    this._addWarningToTimeline("⚠️ Please log in to your account to start your AI analysis. Redirecting to login page in few seconds...")
 
     setTimeout(() => {
       window.location.href = "/account/login";
@@ -438,39 +469,40 @@ class DermaAIWizard {
     this.addBot(message || "Something went wrong. Please try again.");
   }
 
-  setWidgetStatus() {
-    const perms = this.uiSettings.permissions || {};
-    const modules = this.uiSettings.modules || {};
-    const isActiveHairCare = (perms.hairEnabled !== false) && modules?.hairCare?.enabled;
-    const isActiveSkinCare = (perms.skinEnabled !== false) && modules?.skinCare?.enabled;
-    this.activeWidget.hairCare = isActiveHairCare;
-    this.activeWidget.skinCare = isActiveSkinCare;
-  }
-
   setActiveFlow() {
-    this.setWidgetStatus()
-    if (this.activeWidget.skinCare && this.activeWidget.hairCare) {
-      this.state.activeFlow = "skinCare"; // Default when both are active
-    } else if (this.activeWidget.skinCare) {
-      this.state.activeFlow = "skinCare";
-    } else if (this.activeWidget.hairCare) {
-      this.state.activeFlow = "hairCare";
-    } else {
-      console.warn("No active flows found in settings.");
-      this.state.timeline.push({
-        type: 'system',
-        status: 'warning', // used for styling
-        text: "⚠️ Modules Inactive. The Skin and Hair analysis features are currently disabled for this store.",
-      });
+    console.log("uiSettings::::", this.uiSettings)
+    // 1. Check Permissions (Subscription Plan level)
+    const hasSkinPerm = this.uiSettings?.permissions?.skinEnabled ?? false;
+    const hasHairPerm = this.uiSettings?.permissions?.hairEnabled ?? false;
 
-      this.renderChatUI();
-      return "not-active"; // Exit if everything is disabled
+    // 2. Check Active Status (Merchant toggle level)
+    const isSkinActive = this.uiSettings?.modules?.skinCare?.enabled ?? false;
+    const isHairActive = this.uiSettings?.modules?.hairCare?.enabled ?? false;
+
+    if (!hasSkinPerm && !hasHairPerm) {
+      this._addWarningToTimeline("🚫 Access Denied. Please upgrade your plan to enable AI Skin and Hair analysis.");
+      return "no-permission";
     }
+
+    if ((hasSkinPerm || hasHairPerm) && (!isSkinActive && !isHairActive)) {
+      this._addWarningToTimeline("⚠️ Modules Inactive. Please enable the Skin or Hair advisor from the app settings.");
+      return "not-active";
+    }
+
+    // SCENARIO C: Logic to set the default flow if at least one is enabled
+    if (isSkinActive) {
+      this.state.activeFlow = "skinCare";
+    } else if (isHairActive) {
+      this.state.activeFlow = "hairCare";
+    }
+    return "success";
+
   }
 
   /* ---------- Session & submit ---------- */
 
   async startSession() {
+    console.log("Run::startSession")
     // console.log("start session", this.state)
     this.state.timeline = [];
 
@@ -498,14 +530,15 @@ class DermaAIWizard {
     this.addBot("⏳ Preparing your personalized assessment...");
 
     console.log("timeline:::", this.state.timeline)
-
-
-    const data = await this.api.post(this.endpoints.sessionStart, {
+    const payload = {
       platform: "web",
-      flowType: this.flowConfig.skinCare.flowType,
-    });
+      flowType: this.flowConfig.skinCare.flowType, // Sent dynamically (skin_flow or hair_flow)
+      // customer: this.customer
+    }
+    const { data, error } = await this.apiService.startSession(payload)
+    console.log("sucess::sexxions", data, error)
 
-    if (!data || data.error) {
+    if (error) {
       this.addBot("❌ Unable to start session.");
       return;
     }
@@ -520,20 +553,23 @@ class DermaAIWizard {
     if (!this.state.sessionId || this.state.isSubmitting) return;
 
     this.state.isSubmitting = true;
-    const res = await this.api.post(this.endpoints.flowSubmit, {
+
+    const payload = {
       session_id: this.state.sessionId,
       step_id: stepId,
       response: responseValue,
       flowType: this.flowConfig[this.state.activeFlow].flowType,
-    });
+    }
 
-    this.state.isSubmitting = false;
+    const { data, error } = await this.apiService.submitStep(payload)
 
-    if (res?.error) {
+    if (error) {
       this.notifyError("❌ We couldn’t save that step. Please try again.");
       return;
     }
-    if (res?.ui) this.renderUI(res.ui);
+    this.state.isSubmitting = false;
+
+    if (data?.ui) this.renderUI(data.ui);
   }
 
   /* ---------- UI engine: step type → renderer ---------- */
@@ -832,14 +868,14 @@ class DermaAIWizard {
         this.addUser("📸 Photo uploaded");
         this.addBot("⏳ Analyzing image...");
 
-        const res = await this.api.post(this.endpoints.imageUpload, fd, true);
+        const { data, error } = await this.apiService.uploadImage(fd);
 
-        if (res?.error) {
+        if (error) {
+          console.error(error);
           this.notifyError("❌ Image upload failed. Please try another photo.");
           return;
         }
-        if (res?.ui) this.renderUI(res.ui);
-        else this.notifyError("❌ No response after upload. Please try again.");
+        this.renderUI(data.ui);
       });
     });
   }
@@ -1168,3 +1204,6 @@ const dermaAIWizard = new DermaAIWizard({
   baseUrl: "https://app.dermatics.in",
   customer: window.DERMA_AI_CUSTOMER
 });
+
+console.log("starting the APP-----")
+dermaAIWizard.initLauncher();
