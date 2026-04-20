@@ -9,19 +9,34 @@ import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prism
 import prisma from "./db.server";
 import { onAppInstall } from "./lib/auth.server";
 
+// MongoDB's _id is immutable — strip `id` from upsert update payload.
+class MongoPrismaSessionStorage extends PrismaSessionStorage {
+  async storeSession(session) {
+    await this.ensureReady();
+    const data = this.sessionToRow(session);
+    const { id: _omit, ...updateData } = data;
+    await this.getSessionTable().upsert({
+      where: { id: session.id },
+      update: updateData,
+      create: data,
+    });
+    return true;
+  }
+}
+
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.January25,
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
-  authPathPrefix: "/api/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
+  authPathPrefix: "/auth",
+  sessionStorage: new MongoPrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   webhooks: {
     APP_UNINSTALLED: {
       deliveryMethod: DeliveryMethod.Http,
-      callbackUrl: "/api/webhooks",
+      callbackUrl: "/webhooks/app/uninstalled",
     },
   },
   hooks: {
