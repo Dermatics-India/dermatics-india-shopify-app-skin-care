@@ -169,7 +169,7 @@ export function DateRangePicker({ defaultPreset = "last30", onChange }) {
             borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
             padding: "12px",
-            minWidth: "420px",
+            minWidth: "450px",
           }}
         >
           <s-grid gridTemplateColumns="180px 1fr" gap="base">

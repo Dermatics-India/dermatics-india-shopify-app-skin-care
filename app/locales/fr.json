@@ -70,7 +70,7 @@
     },
     "toast": {
       "embedEnabled": "Widget is enabled on your storefront!",
-      "embedNotDetected": "Widget not detected yet. Make sure you saved in the theme editor."
+      "embedNotDetected": "App widget is disabled. Please enable it in the Theme Editor and click Save."
     },
     "currentPlan": {
       "title": "Your Plan",

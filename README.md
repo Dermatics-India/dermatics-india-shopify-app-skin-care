@@ -350,3 +350,15 @@ This template uses [Remix](https://remix.run). The following Shopify tools are a
 - [App extensions](https://shopify.dev/docs/apps/app-extensions/list)
 - [Shopify Functions](https://shopify.dev/docs/api/functions)
 - [Getting started with internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+
+#### Biling Integration Note: 
+```
+Development / pre-launch: install the app on a Shopify partner/development store (Partners dashboard → Stores → Add store → Development store). With this fix, billing will just work there with test: true.
+Production: in the Partner Dashboard, set App setup → Distribution to Public app (or submit the app for listing). Then real (non-test) charges are allowed on any merchant store.
+```
+
+<!-- APP NOTE:  -->
+Branching
+note template: develop, master
+remix template: [migrate, main]
+current main branch: main

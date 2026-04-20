@@ -1,9 +1,5 @@
 import prisma from "../db.server";
 
-// Queries the shop's main (published) theme for settings_data.json via the
-// Admin GraphQL API and returns whether the `ai-dermatics` app-embed block
-// is enabled. Persists the result to Shop.settings.appEmbedEnabled so the
-// UI stays in sync.
 export const getAppEmbedStatus = async ({ admin, shopRecord }) => {
   const response = await admin.graphql(
     `#graphql
@@ -37,16 +33,34 @@ export const getAppEmbedStatus = async ({ admin, shopRecord }) => {
     return { success: false, isEnabled: false, message: "Settings file not found" };
   }
 
-  // Shopify's settings_data.json starts with a /* ... */ header comment.
+  // settings_data.json sometimes starts with a /* ... */ header comment, so
+  // jump to the first `{` before parsing.
   const jsonStart = content.indexOf("{");
-  const settingsData = JSON.parse(jsonStart >= 0 ? content.slice(jsonStart) : content);
-  const blocks = settingsData?.current?.blocks || {};
+  let settingsData;
+  try {
+    settingsData = JSON.parse(jsonStart >= 0 ? content.slice(jsonStart) : content);
+  } catch (err) {
+    return { success: false, isEnabled: false, message: "Failed to parse settings_data.json" };
+  }
+
+  // `current` can be an object (live settings) or a string pointing into `presets`.
+  const current =
+    typeof settingsData?.current === "string"
+      ? settingsData?.presets?.[settingsData.current]
+      : settingsData?.current;
+
+  const blocks = current?.blocks || {};
+
+  // App embed block type format:
+  //   shopify://apps/{app-client-id}/blocks/{block-handle}/{extension-uuid}
+  // Match on the block handle (file name) and, when available, the extension UUID.
+  const blockHandle = process.env.SHOPIFY_THEME_EXTENSION_HANDLE || "app-embed";
 
   const appEmbedEnabled = Object.values(blocks).some((block) => {
+    if (!block || block.disabled) return false;
     const type = block.type || "";
-    const isTargetApp = type.includes("ai-dermatics");
-    const isAppEmbed = type.includes("app-embed");
-    return isTargetApp && isAppEmbed && !block.disabled;
+    const isOurBlock = type.includes(`/blocks/${blockHandle}/`);
+    return isOurBlock;
   });
 
   if (shopRecord) {

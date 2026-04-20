@@ -4,40 +4,12 @@ import { useTranslation } from "react-i18next";
 import { authenticate } from "../shopify.server";
 import { useApi } from "../hooks/useApi";
 import { ENDPOINTS } from "../utils/endpoints";
-import { ProgressBar } from "../components/common";
+import { PlanSkeletonGrid, ProgressBar } from "../components/common";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
   return null;
 };
-
-function PlanSkeletonGrid() {
-  return (
-    <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
-      {[1, 2, 3, 4].map((i) => (
-        <s-section key={i}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {Array.from({ length: 5 }).map((_, j) => (
-              <div
-                key={j}
-                style={{
-                  height: "12px",
-                  width: `${60 + ((j * 7) % 35)}%`,
-                  borderRadius: "4px",
-                  background:
-                    "linear-gradient(90deg, #eceff1 0%, #f5f7f8 50%, #eceff1 100%)",
-                  backgroundSize: "200% 100%",
-                  animation: "skeencare-shimmer 1.4s ease-in-out infinite",
-                }}
-              />
-            ))}
-          </div>
-        </s-section>
-      ))}
-      <style>{`@keyframes skeencare-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
-    </s-grid>
-  );
-}
 
 export default function Plans() {
   const { t } = useTranslation();

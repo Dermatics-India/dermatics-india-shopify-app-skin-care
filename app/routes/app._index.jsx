@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "@remix-run/react";
+import { useLoaderData, useNavigate } from "@remix-run/react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
 
@@ -14,7 +14,7 @@ const Step2Img = "/assets/step2.png";
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
   return {
-    extensionUuid: process.env.SHOPIFY_EXTENSION_UUID || process.env.VITE_EXTENSION_UUID || "",
+    app_handle: process.env.SHOPIFY_THEME_EXTENSION_HANDLE
   };
 };
 
@@ -23,6 +23,7 @@ export default function SetupGuidePage() {
   const shopify = useAppBridge();
   const navigate = useNavigate();
   const { shopData, embedStatus, checkEmbedStatus } = useShop();
+  const {  app_handle } = useLoaderData()
 
   const [activeStep, setActiveStep] = useState(null);
   const [guideExpanded, setGuideExpanded] = useState(true);
@@ -38,15 +39,10 @@ export default function SetupGuidePage() {
   }, [embedStatus.isLoading, embedStatus.isEnabled, isCustomized]);
 
   const handleOpenThemeEditor = useCallback(() => {
-    const shop =
-      shopData?.shop ||
-      shopify?.config?.shop ||
-      (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("shop") : null);
+    const shop = shopify?.config?.shop 
     if (!shop) return;
     const appClientId = shopify?.config?.apiKey;
-    const extensionUuid =
-      (typeof window !== "undefined" && window.__EXTENSION_UUID__) || "";
-    const url = `https://${shop}/admin/themes/current/editor?context=apps&template=index&activateAppId=${appClientId}/${extensionUuid}`;
+    const url = `https://${shop}/admin/themes/current/editor?context=apps&template=index&activateAppId=${appClientId}/${app_handle}`;
     window.open(url, "_blank");
   }, [shopData, shopify]);
 
@@ -58,7 +54,7 @@ export default function SetupGuidePage() {
           shopify.toast.show(t("SetupGuide.toast.embedEnabled"));
           if (!isCustomized) setActiveStep("step2");
         } else {
-          shopify.toast.show(t("SetupGuide.toast.embedNotDetected"), { isError: true });
+          shopify.toast.show(t("SetupGuide.toast.embedNotDetected"));
         }
       })
       .finally(() => setIsRefreshing(false));
@@ -106,11 +102,11 @@ export default function SetupGuidePage() {
   return (
     <s-page inlineSize="small">
       <s-stack direction="block" gap="base">
-        {allDone && (
+        {/* {allDone && (
           <s-banner tone="success" heading={t("SetupGuide.completeBanner.title")}>
             <s-paragraph>{t("SetupGuide.completeBanner.description")}</s-paragraph>
           </s-banner>
-        )}
+        )} */}
 
         <s-section padding="none">
           <s-box 

@@ -97,6 +97,26 @@ const cancelActiveSubscription = async (admin, subscriptionId) => {
   return json?.data?.appSubscriptionCancel;
 };
 
+// Shopify's Billing API rejects real charges for apps that aren't publicly
+// distributed. Dev stores must use `test: true`; for production stores we
+// fall back to `isDev` so local runs against production-type stores still
+// exercise the code without real charges.
+const isPartnerDevStore = async (admin) => {
+  try {
+    const resp = await admin.graphql(
+      `#graphql
+      query ShopPlan {
+        shop { plan { partnerDevelopment shopifyPlus } }
+      }`,
+    );
+    const json = await resp.json();
+    return Boolean(json?.data?.shop?.plan?.partnerDevelopment);
+  } catch (err) {
+    console.error("isPartnerDevStore lookup failed:", err?.message || err);
+    return false;
+  }
+};
+
 // POST /api/billing/subscription
 // Free → cancel any active sub, downgrade in DB, reset usage.
 // Paid → create AppSubscription with trialDays (only if trial unused);
@@ -162,6 +182,12 @@ export const createPlanSubscription = async ({ admin, shopRecord, planId }) => {
     shopRecord.shop,
   )}&planId=${plan.id}`;
 
+  // Partner dev stores *must* use test mode; otherwise Shopify rejects the
+  // mutation with "Apps without a public distribution cannot use the Billing API".
+  const isDevStore = await isPartnerDevStore(admin);
+  const testMode = isDevStore || isDev;
+  // const testMode = false;
+
   const resp = await admin.graphql(
     `#graphql
     mutation AppSubscriptionCreate(
@@ -187,7 +213,7 @@ export const createPlanSubscription = async ({ admin, shopRecord, planId }) => {
       variables: {
         name: plan.name,
         returnUrl,
-        test: isDev,
+        test: testMode,
         trialDays,
         lineItems: [
           {
@@ -212,6 +238,20 @@ export const createPlanSubscription = async ({ admin, shopRecord, planId }) => {
 
   if (userErrors && userErrors.length > 0) {
     console.error("Shopify billing userErrors:", userErrors);
+    const distributionBlocked = userErrors.some((e) =>
+      /public distribution/i.test(e?.message || ""),
+    );
+    if (distributionBlocked) {
+      return {
+        status: 400,
+        body: {
+          success: false,
+          message:
+            "Shopify rejected the charge because this app isn't publicly distributed yet. Install the app on a Shopify development (partner) store to test billing, or set the app's distribution to Public in the Partner Dashboard.",
+          errors: userErrors,
+        },
+      };
+    }
     return { status: 400, body: { success: false, errors: userErrors } };
   }
 
