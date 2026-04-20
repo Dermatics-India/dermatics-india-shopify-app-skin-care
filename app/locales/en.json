@@ -49,6 +49,7 @@
   "SetupGuide": {
     "title": "Welcome! Let's get your store ready",
     "subtitle": "Complete these steps to start providing AI-powered skin & hair analysis to your customers.",
+    "progress": "{{completedCount}} of {{totalSteps}} steps completed",
     "steps": {
       "step1": {
         "title": "Enable App Embed",

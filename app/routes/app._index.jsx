@@ -134,7 +134,7 @@ export default function SetupGuidePage() {
               <s-stack direction="block" gap="small-200">
                 <s-stack direction="inline" justifyContent="space-between">
                   <s-text tone="subdued">
-                    {completedCount} of {steps.length} steps completed
+                    { t("SetupGuide.progress", { completedCount: completedCount, totalSteps: steps.length }) }
                   </s-text>
                   <s-text tone="subdued">{progressPercent}%</s-text>
                 </s-stack>
