@@ -1,10 +1,21 @@
 FROM node:18-alpine
+RUN apk add --no-cache openssl
 
-ARG SHOPIFY_API_KEY
-ENV SHOPIFY_API_KEY=$SHOPIFY_API_KEY
-EXPOSE 8081
+EXPOSE 3000
+
 WORKDIR /app
-COPY web .
-RUN npm install
-RUN cd frontend && npm install && npm run build
-CMD ["npm", "run", "serve"]
+
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json* ./
+
+RUN npm ci --omit=dev && npm cache clean --force
+# Remove CLI packages since we don't need them in production by default.
+# Remove this line if you want to run CLI commands in your container.
+RUN npm remove @shopify/cli
+
+COPY . .
+
+RUN npm run build
+
+CMD ["npm", "run", "docker-start"]

@@ -7,13 +7,14 @@ embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
+include_config_on_deploy = true
 
 [webhooks]
 api_version = "2026-01"
 
-[[webhooks.subscriptions]]
-topics = [ "app/uninstalled" ]
-uri = "/api/webhooks"
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/api/webhooks"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -28,8 +29,3 @@ redirect_urls = [ "https://example.com/api/auth/callback" ]
 url = "https://example.com/api/proxy"
 subpath = "derma-advisor"
 prefix = "apps"
-
-# https://app.dermatics.in
-
-
-

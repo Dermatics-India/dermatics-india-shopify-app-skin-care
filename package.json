@@ -1,32 +1,87 @@
 {
-  "name": "my-node-app",
-  "version": "1.0.0",
-  "main": "web/index.js",
-  "license": "UNLICENSED",
+  "name": "skeencareai",
+  "private": true,
   "scripts": {
-    "start": "node web/index.js",
-    "shopify": "shopify",
-    "build": "shopify app build",
+    "build": "remix vite:build",
     "dev": "shopify app dev",
-    "info": "shopify app info",
+    "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
-    "seed:plans": "node web/seeder/plansSeed.js"
+    "config:use": "shopify app config use",
+    "env": "shopify app env",
+    "start": "remix-serve ./build/server/index.js",
+    "docker-start": "npm run setup && npm run start",
+    "setup": "prisma generate && prisma db push --accept-data-loss",
+    "seed": "node prisma/seed.js",
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
+    "shopify": "shopify",
+    "prisma": "prisma",
+    "graphql-codegen": "graphql-codegen",
+    "vite": "vite"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
   },
   "dependencies": {
-    "@shopify/app-bridge": "^3.7.11",
-    "@shopify/app-bridge-react": "^4.2.8",
-    "@shopify/app-bridge-utils": "^3.5.1",
-    "@shopify/shopify-api": "^12.1.2",
-    "@shopify/shopify-app-express": "^6.0.3",
-    "@shopify/shopify-app-session-storage-sqlite": "^5.0.3",
-    "@tanstack/react-query": "^5.90.10",
-    "dotenv": "^17.4.0",
-    "immer": "^11.1.4",
-    "mongoose": "^9.2.3",
-    "multer": "^2.1.0"
+    "@formatjs/intl-locale": "^4.0.0",
+    "@formatjs/intl-localematcher": "^0.5.4",
+    "@formatjs/intl-pluralrules": "^5.2.14",
+    "@prisma/client": "^6.2.1",
+    "@remix-run/dev": "^2.16.1",
+    "@remix-run/fs-routes": "^2.16.1",
+    "@remix-run/node": "^2.16.1",
+    "@remix-run/react": "^2.16.1",
+    "@remix-run/serve": "^2.16.1",
+    "@shopify/app-bridge-react": "^4.1.6",
+    "@shopify/i18next-shopify": "^0.2.1",
+    "@shopify/polaris": "^12.0.0",
+    "@shopify/shopify-app-remix": "^4.1.0",
+    "@shopify/shopify-app-session-storage-prisma": "^8.0.0",
+    "i18next": "^23.14.0",
+    "i18next-resources-to-backend": "^1.2.1",
+    "immer": "^10.1.1",
+    "isbot": "^5.1.0",
+    "prisma": "^6.2.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^15.0.1",
+    "vite-tsconfig-paths": "^5.0.1",
+    "@shopify/cli": "3.92.1"
   },
   "devDependencies": {
-    "cross-env": "^10.1.0"
-  }
+    "@remix-run/eslint-config": "^2.16.1",
+    "@remix-run/route-config": "^2.16.1",
+    "@shopify/api-codegen-preset": "^1.1.1",
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^22.2.0",
+    "@types/react": "^18.2.31",
+    "@types/react-dom": "^18.2.14",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.2.4",
+    "typescript": "^5.2.2",
+    "vite": "^6.2.2"
+  },
+  "workspaces": [
+    "extensions/*"
+  ],
+  "trustedDependencies": [
+    "@shopify/plugin-cloudflare"
+  ],
+  "resolutions": {
+    "@graphql-tools/url-loader": "8.0.16",
+    "@graphql-codegen/client-preset": "4.7.0",
+    "@graphql-codegen/typescript-operations": "4.5.0",
+    "minimatch": "9.0.5",
+    "vite": "^6.2.2"
+  },
+  "overrides": {
+    "@graphql-tools/url-loader": "8.0.16",
+    "@graphql-codegen/client-preset": "4.7.0",
+    "@graphql-codegen/typescript-operations": "4.5.0",
+    "minimatch": "9.0.5",
+    "vite": "^6.2.2"
+  },
+  "author": "Admin"
 }

@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- Shopify Session --------------------
+
+model Session {
+  id                  String    @id @map("_id")
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// -------------------- Plans --------------------
+// Numeric _id preserved to keep existing PLAN_IDS constants valid.
+
+model Plan {
+  id           Int      @id @map("_id")
+  name         String
+  description  String?
+  price        Float
+  currency     String   @default("USD")
+  interval     String   @default("month") // "month" | "year"
+  features     String[]
+  featureKeys  String[] @default([])
+  isUnlimited  Boolean  @default(false)
+  usageLimit   Int      @default(0)
+  trialDays    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// -------------------- Shop --------------------
+
+type ShopPermissions {
+  skinEnabled Boolean @default(true)
+  hairEnabled Boolean @default(true)
+}
+
+type ShopSettingsEmbed {
+  appEmbedEnabled Boolean @default(false)
+  isCustomized    Boolean @default(false)
+}
+
+type ShopSubscription {
+  id           String?
+  planId       Int       @default(1)
+  status       String?
+  activatedAt  DateTime?
+  cancelledAt  DateTime?
+  trialEndsAt  DateTime?
+  trialUsed    Boolean   @default(false)
+}
+
+type ShopUsage {
+  count       Int      @default(0)
+  periodStart DateTime @default(now())
+}
+
+model Shop {
+  id             String             @id @default(auto()) @map("_id") @db.ObjectId
+  shop           String             @unique
+  accessToken    String?
+  isInstalled    Boolean            @default(false)
+  installedAt    DateTime           @default(now())
+  permissions    ShopPermissions
+  settings       ShopSettingsEmbed
+  subscription   ShopSubscription
+  usage          ShopUsage
+  uninstalledAt  DateTime?
+
+  appSettings    Settings?
+}
+
+// -------------------- Settings --------------------
+
+type WidgetConfig {
+  position    String @default("bottom-right")
+  buttonText  String @default("Analyze Skin")
+  bgColor     String @default("#0084ff")
+  textColor   String @default("#ffffff")
+  fontSize    Int    @default(16)
+  fontWeight  String @default("normal")
+  paddingX    Int    @default(24)
+  paddingY    Int    @default(12)
+  radius      Int    @default(30)
+}
+
+type BubbleConfig {
+  height      Int    @default(60)
+  width       String @default("80%")
+  radius      Int    @default(12)
+  bgColor     String @default("#f4f4f4")
+  textColor   String @default("#333333")
+  fontSize    Int    @default(14)
+  fontWeight  String @default("normal")
+}
+
+type DrawerHeader {
+  fontFamily String @default("sans-serif")
+  fontSize   Int    @default(18)
+  textColor  String @default("#ffffff")
+  bgColor    String @default("#0084ff")
+}
+
+type DrawerBubbles {
+  boat BubbleConfig
+  user BubbleConfig
+}
+
+type DrawerConfig {
+  bgColor String         @default("#ffffff")
+  header  DrawerHeader
+  bubble  DrawerBubbles
+}
+
+type ModuleText {
+  label      String @default("")
+  textColor  String @default("#333333")
+  fontSize   Int    @default(14)
+  fontWeight String @default("normal")
+}
+
+type ModuleImage {
+  url    String @default("")
+  height Int    @default(50)
+  width  Int    @default(50)
+  radius Int    @default(15)
+}
+
+type ModuleConfig {
+  enabled Boolean     @default(true)
+  text    ModuleText
+  image   ModuleImage
+}
+
+type SettingsModules {
+  skinCare ModuleConfig
+  hairCare ModuleConfig
+}
+
+model Settings {
+  id        String          @id @default(auto()) @map("_id") @db.ObjectId
+  shopId    String          @unique @db.ObjectId
+  shop      Shop            @relation(fields: [shopId], references: [id])
+  widget    WidgetConfig
+  drawer    DrawerConfig
+  modules   SettingsModules
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+// -------------------- User Analysis --------------------
+
+model UserAnalysis {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  shop      String?
+  sessionId String?
+  concerns  String[]
+  routine   Json?
+  createdAt DateTime @default(now())
+}
