@@ -20,12 +20,14 @@ export default function CustomizationIndex() {
   const { permissions } = useShop();
 
   return (
-    <s-page>
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingBottom: "16px" }}>
-          <s-heading size="large">{t("Customization.title")}</s-heading>
+    <s-page
+      // heading="customization"
+    >
+      <s-stack gap="small">
+        <s-stack >
+          <s-heading >{t("Customization.title")}</s-heading>
           <s-paragraph tone="subdued">{t("Customization.subtitle")}</s-paragraph>
-        </div>
+        </s-stack>
 
         <s-grid gridTemplateColumns="repeat(auto-fit, minmax(260px, 1fr))" gap="base">
           <CategoryCard
@@ -52,7 +54,7 @@ export default function CustomizationIndex() {
             disabled={!permissions?.hairEnabled}
           />
         </s-grid>
-      </div>
+      </s-stack>
     </s-page>
   );
 }

@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
-import { ColorInput } from "../../common/ColorInput";
 
 export function ModuleSettings({ data, onChange, onImageUpload, isImageUploading }) {
   const { t } = useTranslation();
@@ -130,10 +129,10 @@ export function ModuleSettings({ data, onChange, onImageUpload, isImageUploading
           onInput={(e) => onChange(["text", "label"], e.target.value)}
           autocomplete="off"
         />
-        <ColorInput
+        <s-color-field
           label="Text Color"
           value={data?.text?.textColor || "#333333"}
-          onChange={(val) => onChange(["text", "textColor"], val)}
+          onChange={(e) => onChange(["text", "textColor"], e.target.value)}
         />
         <s-text-field
           label="Text Size"

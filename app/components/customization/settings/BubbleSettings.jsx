@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { getClampedNumber } from "../../../utils";
-import { ColorInput } from "../../common/ColorInput";
 
 export function BubbleSettings({ data, onChange, pathPrefix, fontWeightOptions }) {
   const { t } = useTranslation();
@@ -15,16 +14,16 @@ export function BubbleSettings({ data, onChange, pathPrefix, fontWeightOptions }
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <ColorInput
+    <s-stack direction="block" gap="base">
+      <s-color-field
         label={t("Customization.settings.drawer.bubbleBg")}
         value={data.bgColor}
-        onChange={(val) => handleValueChange("bgColor", val)}
+        onChange={(e) => handleValueChange("bgColor", e.target.value)}
       />
-      <ColorInput
+      <s-color-field
         label={t("Customization.settings.drawer.bubbleColor")}
         value={data.textColor}
-        onChange={(val) => handleValueChange("textColor", val)}
+        onChange={(e) => handleValueChange("textColor", e.target.value)}
       />
 
       <s-text-field
@@ -52,6 +51,6 @@ export function BubbleSettings({ data, onChange, pathPrefix, fontWeightOptions }
         onInput={(e) => handleNumberChange("radius", e.target.value, 0, 30)}
         autocomplete="off"
       />
-    </div>
+    </s-stack>
   );
 }

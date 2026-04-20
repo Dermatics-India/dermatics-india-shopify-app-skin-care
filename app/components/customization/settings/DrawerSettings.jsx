@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getClampedNumber } from "../../../utils";
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
-import { ColorInput } from "../../common/ColorInput";
 import { BubbleSettings } from "./BubbleSettings";
 
 function SectionHeader({ title }) {
@@ -48,10 +47,10 @@ export function DrawerSettings({ data, onChange }) {
       <SectionHeader title={t("Customization.settings.drawer.general")} />
       <s-divider />
       <div style={{ padding: "16px" }}>
-        <ColorInput
+        <s-color-field
           label={t("Customization.settings.drawer.drawerBg")}
           value={data.drawer.bgColor}
-          onChange={(val) => onChange(["bgColor"], val)}
+          onChange={(e) => onChange(["bgColor"], e.target.value)}
         />
       </div>
 
@@ -79,15 +78,15 @@ export function DrawerSettings({ data, onChange }) {
           autocomplete="off"
         />
 
-        <ColorInput
+        <s-color-field
           label={t("Customization.settings.drawer.headerBg")}
           value={data.drawer.header.bgColor}
-          onChange={(val) => onChange(["header", "bgColor"], val)}
+          onChange={(e) => onChange(["header", "bgColor"], e.target.value)}
         />
-        <ColorInput
+        <s-color-field
           label={t("Customization.settings.drawer.headerColor")}
           value={data.drawer.header.textColor}
-          onChange={(val) => onChange(["header", "textColor"], val)}
+          onChange={(e) => onChange(["header", "textColor"], e.target.value)}
         />
       </div>
 

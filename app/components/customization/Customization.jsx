@@ -206,14 +206,10 @@ export function Customization({ type }) {
 
   return (
     <s-page
-      heading={title}
-      backAction={
-        {
-          content: t("Customization.settings.back"),
-          onAction: () => navigate("/app/customization"),
-        }
-      }
+      heading={title} 
     >
+      <s-link slot="breadcrumb-actions" href="/app/customization">{ t("Customization.settings.back") }</s-link>
+
       <LoadingOverlay active={isSavebarLoading}>
         <s-grid gridTemplateColumns="1fr 2fr" gap="base">
           <s-section padding="none">

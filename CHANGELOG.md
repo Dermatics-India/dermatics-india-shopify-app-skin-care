@@ -13,7 +13,7 @@ For new projects, use the **[Shopify App Template - React Router](https://github
 To migrate your existing Remix app, follow the **[migration guide](https://github.com/Shopify/shopify-app-template-react-router/wiki/Upgrading-from-Remix)**.
 
 ## 2025.08.16
-- [#52](https://github.com/Shopify/shopify-app-template-remix/pull/1153) Use `ApiVersion.July25` rather than `LATEST_API_VERSION` in `.graphqlrc`.
+- [#52](https://github.com/Shopify/shopify-app-template-remix/pull/1153) Use `ApiVersion.January26` rather than `LATEST_API_VERSION` in `.graphqlrc`.
 
 ## 2025.07.07
 - [#1103](https://github.com/Shopify/shopify-app-template-remix/pull/1086) Remove deprecated .npmrc config values

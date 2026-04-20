@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { authenticate } from "../shopify.server";
 import { SetupStep } from "../components/setupguide";
+import { ProgressBar } from "../components/common";
 import { useShop } from "../providers/ShopProvider";
 
 const Step1Img = "/assets/step1.png";
@@ -103,8 +104,8 @@ export default function SetupGuidePage() {
   const allDone = completedCount === steps.length;
 
   return (
-    <s-page narrow>
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <s-page inlineSize="small">
+      <s-stack direction="block" gap="base">
         {allDone && (
           <s-banner tone="success" heading={t("SetupGuide.completeBanner.title")}>
             <s-paragraph>{t("SetupGuide.completeBanner.description")}</s-paragraph>
@@ -112,34 +113,35 @@ export default function SetupGuidePage() {
         )}
 
         <s-section padding="none">
-          <div style={{ padding: "16px 16px 8px 16px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <s-heading size="large">{t("SetupGuide.title")}</s-heading>
-                <s-text tone="subdued">{t("SetupGuide.subtitle")}</s-text>
-              </div>
-              <s-button
-                variant="tertiary"
-                icon={guideExpanded ? "chevron-up" : "chevron-down"}
-                onClick={() => setGuideExpanded(!guideExpanded)}
-                accessibilityLabel="Toggle setup guide"
-              />
-            </div>
+          <s-box 
+            // paddingInline="base" paddingBlockStart="base" paddingBlockEnd="small-200"
+            padding="base"
+            >
+            <s-stack direction="block" gap="base">
+              <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                <s-stack direction="block" gap="none">
+                  <s-heading accessibilityRole="none">{t("SetupGuide.title")}</s-heading>
+                  <s-text tone="subdued">{t("SetupGuide.subtitle")}</s-text>
+                </s-stack>
+                <s-button
+                  variant="tertiary"
+                  icon={guideExpanded ? "chevron-up" : "chevron-down"}
+                  onClick={() => setGuideExpanded(!guideExpanded)}
+                  accessibilityLabel="Toggle setup guide"
+                />
+              </s-stack>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <s-text tone="subdued">
-                  {completedCount} of {steps.length} steps completed
-                </s-text>
-                <s-text tone="subdued">{progressPercent}%</s-text>
-              </div>
-              <s-progress-indicator
-                progress={progressPercent}
-                size="small"
-                tone="primary"
-              />
-            </div>
-          </div>
+              <s-stack direction="block" gap="small-200">
+                <s-stack direction="inline" justifyContent="space-between">
+                  <s-text tone="subdued">
+                    {completedCount} of {steps.length} steps completed
+                  </s-text>
+                  <s-text tone="subdued">{progressPercent}%</s-text>
+                </s-stack>
+                <ProgressBar progress={progressPercent} size="small" tone="primary" />
+              </s-stack>
+            </s-stack>
+          </s-box>
 
           <div
             id="setup-guide-collapsible"
@@ -149,13 +151,13 @@ export default function SetupGuidePage() {
               transition: "max-height 200ms ease-in-out",
             }}
           >
-            <div style={{ padding: "4px 0 8px 0" }}>
+            <s-box paddingBlock="small-200">
               {steps.map((step, index) => (
                 <Fragment key={step.id}>
                   {index > 0 && (
-                    <div style={{ padding: "0 16px" }}>
+                    <s-box paddingInline="base">
                       <s-divider />
-                    </div>
+                    </s-box>
                   )}
                   <SetupStep
                     title={step.title}
@@ -175,26 +177,26 @@ export default function SetupGuidePage() {
                   />
                 </Fragment>
               ))}
-            </div>
+            </s-box>
           </div>
         </s-section>
 
         <s-section>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <s-heading>{t("SetupGuide.currentPlan.title")}</s-heading>
+          <s-stack direction="inline" justifyContent="space-between" alignItems="center" gap="base">
+            <s-stack direction="block" gap="none">
+              <s-text tone="subdued">{t("SetupGuide.currentPlan.title")}</s-text>
               <s-heading size="large">{shopData?.subscription?.planName || "Free"}</s-heading>
-            </div>
+            </s-stack>
             <s-button onClick={() => navigate("/app/plans")}>
               {t("SetupGuide.currentPlan.manage")}
             </s-button>
-          </div>
+          </s-stack>
         </s-section>
 
-        <div style={{ textAlign: "center", paddingBottom: "16px" }}>
+        <s-stack direction="block" alignItems="center" paddingBlock="base">
           <s-text tone="subdued">{t("SetupGuide.footer")}</s-text>
-        </div>
-      </div>
+        </s-stack>
+      </s-stack>
     </s-page>
   );
 }

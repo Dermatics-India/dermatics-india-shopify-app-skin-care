@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-// Compact range picker built on native <input type="date"> + a preset
-// dropdown. Polaris web components don't ship a DatePicker/Popover pair, so
-// we lean on the browser calendar and position a card below the trigger.
-
 function getPresetRange(key) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -57,6 +53,23 @@ function fromInputValue(str) {
   return new Date(y, m - 1, d);
 }
 
+function rangeToPickerValue(range) {
+  if (!range?.start || !range?.end) return "";
+  return `${toInputValue(range.start)}--${toInputValue(range.end)}`;
+}
+
+function pickerValueToRange(str) {
+  if (!str || !str.includes("--")) return null;
+  const [start, end] = str.split("--");
+  return { start: fromInputValue(start), end: fromInputValue(end) };
+}
+
+function toViewValue(date) {
+  const d = date || new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
 export function DateRangePicker({ defaultPreset = "last30", onChange }) {
   const { t } = useTranslation();
 
@@ -92,29 +105,23 @@ export function DateRangePicker({ defaultPreset = "last30", onChange }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open, closeAndRevert]);
 
-  const handlePresetChange = (e) => {
-    const key = e.target.value;
+  const handlePresetSelect = (key) => {
     setSelectedPreset(key);
     if (key === "custom") return;
     const range = getPresetRange(key);
     setDateRange(range);
-    emitChange(key, range);
-    setOpen(false);
   };
 
-  const handleStart = (e) => {
+  const handlePickerChange = (e) => {
+    const next = pickerValueToRange(e.target.value);
+    if (!next) return;
     setSelectedPreset("custom");
-    setDateRange((prev) => ({ ...prev, start: fromInputValue(e.target.value) }));
-  };
-
-  const handleEnd = (e) => {
-    setSelectedPreset("custom");
-    setDateRange((prev) => ({ ...prev, end: fromInputValue(e.target.value) }));
+    setDateRange(next);
   };
 
   const handleApply = () => {
     if (!dateRange?.start || !dateRange?.end) return;
-    emitChange("custom", dateRange);
+    emitChange(selectedPreset, dateRange);
     setOpen(false);
   };
 
@@ -137,7 +144,8 @@ export function DateRangePicker({ defaultPreset = "last30", onChange }) {
     { value: "custom", label: t("cmn.dateFilter.custom") },
   ];
 
-  const maxDate = toInputValue(new Date());
+  const pickerValue = rangeToPickerValue(dateRange);
+  const viewValue = toViewValue(dateRange?.end || dateRange?.start);
 
   return (
     <div ref={rootRef} style={{ position: "relative", display: "inline-block" }}>
@@ -158,56 +166,59 @@ export function DateRangePicker({ defaultPreset = "last30", onChange }) {
             zIndex: 40,
             background: "var(--p-color-bg-surface, #fff)",
             border: "1px solid var(--p-color-border, #e1e3e5)",
-            borderRadius: "10px",
+            borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-            padding: "16px",
-            minWidth: "320px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
+            padding: "12px",
+            minWidth: "420px",
           }}
         >
-          <s-select
-            label={t("cmn.dateFilter.custom")}
-            value={selectedPreset}
-            onChange={handlePresetChange}
-          >
-            {presetOptions.map((o) => (
-              <s-option key={o.value} value={o.value}>
-                {o.label}
-              </s-option>
-            ))}
-          </s-select>
+          <s-grid gridTemplateColumns="180px 1fr" gap="base">
+            <s-stack direction="block" gap="none">
+              {presetOptions.map((o) => {
+                const active = selectedPreset === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => handlePresetSelect(o.value)}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: active
+                        ? "var(--p-color-bg-surface-selected, #ebebeb)"
+                        : "transparent",
+                      color: "var(--p-color-text, #111)",
+                      fontWeight: active ? 600 : 500,
+                      fontSize: "13px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </s-stack>
 
-          <div style={{ display: "flex", gap: "8px" }}>
-            <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-              <span style={{ fontSize: "12px" }}>{t("cmn.dateFilter.from") || "From"}</span>
-              <input
-                type="date"
-                value={toInputValue(dateRange?.start)}
-                max={maxDate}
-                onChange={handleStart}
+            <s-stack direction="block" gap="base">
+              <s-date-picker
+                type="range"
+                name="date-range"
+                value={pickerValue}
+                view={viewValue}
+                onChange={handlePickerChange}
               />
-            </label>
-            <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-              <span style={{ fontSize: "12px" }}>{t("cmn.dateFilter.to") || "To"}</span>
-              <input
-                type="date"
-                value={toInputValue(dateRange?.end)}
-                max={maxDate}
-                onChange={handleEnd}
-              />
-            </label>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-            <s-button onClick={closeAndRevert}>
-              {t("cmn.dateFilter.cancel")}
-            </s-button>
-            <s-button variant="primary" onClick={handleApply}>
-              {t("cmn.dateFilter.apply")}
-            </s-button>
-          </div>
+              <s-stack direction="inline" justifyContent="end" gap="small-200">
+                <s-button onClick={closeAndRevert}>
+                  {t("cmn.dateFilter.cancel")}
+                </s-button>
+                <s-button variant="primary" onClick={handleApply}>
+                  {t("cmn.dateFilter.apply")}
+                </s-button>
+              </s-stack>
+            </s-stack>
+          </s-grid>
         </div>
       )}
     </div>

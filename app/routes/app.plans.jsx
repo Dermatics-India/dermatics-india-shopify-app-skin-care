@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { authenticate } from "../shopify.server";
 import { useApi } from "../hooks/useApi";
 import { ENDPOINTS } from "../utils/endpoints";
+import { ProgressBar } from "../components/common";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -145,7 +146,7 @@ export default function Plans() {
               </div>
               {!currentPlan.isUnlimited && (
                 <>
-                  <s-progress-indicator progress={usageProgress} size="small" />
+                  <ProgressBar progress={usageProgress} size="small" />
                   <s-text tone="subdued">
                     {t("plans.resets", { date: new Date(usage.periodEndsAt).toLocaleDateString() })}
                   </s-text>

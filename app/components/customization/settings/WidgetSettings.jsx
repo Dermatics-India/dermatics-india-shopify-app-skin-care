@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
-import { ColorInput } from "../../common/ColorInput";
 
 export function WidgetSettings({ data, onChange }) {
   const { t } = useTranslation();
@@ -82,15 +81,15 @@ export function WidgetSettings({ data, onChange }) {
         autocomplete="off"
       />
 
-      <ColorInput
+      <s-color-field
         label={t("Customization.settings.widget.bgColor")}
         value={data.widget.bgColor}
-        onChange={(val) => onChange("bgColor", val)}
+        onChange={(e) => onChange("bgColor", e.target.value)}
       />
-      <ColorInput
+      <s-color-field
         label={t("Customization.settings.widget.textColor")}
         value={data.widget.textColor}
-        onChange={(val) => onChange("textColor", val)}
+        onChange={(e) => onChange("textColor", e.target.value)}
       />
     </div>
   );
