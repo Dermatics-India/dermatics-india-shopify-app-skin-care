@@ -1,83 +1,79 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useTranslation } from "react-i18next";
 
 import { authenticate } from "../shopify.server";
-import { useApi } from "../hooks/useApi";
-import { ENDPOINTS } from "../utils/endpoints";
-import { PlanSkeletonGrid, ProgressBar } from "../components/common";
+import { ProgressBar } from "../components/common";
+
+import { loadShopRecord } from "~/lib/shopAuth.server";
+import { getPlans, createPlanSubscription } from "~/lib/billing.server";
+
+// Top-frame navigation — required for Shopify billing confirmation pages,
+// which refuse to load inside the embedded app iframe.
+function redirectTopFrame(url) {
+  if (typeof window === "undefined") return;
+  if (window.top && window.top !== window.self) {
+    window.top.location.href = url;
+  } else {
+    window.location.href = url;
+  }
+}
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+  const { session } = await authenticate.admin(request);
+  const shopRecord = await loadShopRecord(session);
+  const payload = await getPlans({ shopRecord });
+  return Response.json(payload);
+};
+
+export const action = async ({ request }) => {
+  const { admin, session } = await authenticate.admin(request);
+  const shopRecord = await loadShopRecord(session);
+  const formData = await request.formData();
+  const planId = formData.get("planId");
+
+  const result = await createPlanSubscription({ admin, shopRecord, planId });
+  return Response.json(result.body, { status: result.status });
 };
 
 export default function Plans() {
   const { t } = useTranslation();
-  const api = useApi();
+  const { plans = [], currentPlan, trial, usage } = useLoaderData();
+  const fetcher = useFetcher();
 
-  const [plans, setPlans] = useState([]);
-  const [currentPlan, setCurrentPlan] = useState(null);
-  const [trial, setTrial] = useState(null);
-  const [usage, setUsage] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [pendingPlanId, setPendingPlanId] = useState(null);
+  const isSubmitting = fetcher.state !== "idle";
+  const pendingPlanId = isSubmitting ? fetcher.formData?.get("planId") : null;
 
-  const loadPlans = () => {
-    setIsLoading(true);
-    api
-      .get(ENDPOINTS.GET_PLANS)
-      .then((res) => {
-        if (res.success) {
-          setPlans(res.plans);
-          setCurrentPlan(res.currentPlan);
-          setTrial(res.trial);
-          setUsage(res.usage);
-        }
-      })
-      .catch(() => {
-        if (typeof shopify !== "undefined") {
-          shopify.toast.show(t("plans.failedToLoad"), { isError: true });
-        }
-      })
-      .finally(() => setIsLoading(false));
-  };
+  // Each fetcher result must only be processed once. Without this guard, any
+  // re-render after the response arrives would re-fire the toast/redirect.
+  const handledResultRef = useRef(null);
 
   useEffect(() => {
-    loadPlans();
-  }, []);
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    if (handledResultRef.current === fetcher.data) return;
+    handledResultRef.current = fetcher.data;
 
-  const handleUpgrade = async (planId) => {
-    setPendingPlanId(planId);
-    try {
-      const res = await api.post(ENDPOINTS.SUBSCRIPTOIN, { planId });
-      if (!res?.success) {
-        shopify.toast.show(res?.message || t("plans.upgradeFailed"), { isError: true });
-        return;
-      }
-      if (res.downgraded) {
-        shopify.toast.show(res.message || t("plans.planUpdated"));
-        loadPlans();
-        return;
-      }
-      if (res.url) {
-        if (window.top) window.top.location.href = res.url;
-        else window.location.href = res.url;
-      }
-    } catch (err) {
-      const message = err?.message || err?.errors?.[0]?.message || t("plans.upgradeFailed");
-      shopify.toast.show(message, { isError: true });
-    } finally {
-      setPendingPlanId(null);
+    const res = fetcher.data;
+
+    if (!res.success) {
+      shopify.toast.show(res.message || t("plans.upgradeFailed"), { isError: true });
+      return;
     }
-  };
+    if (res.url) {
+      // Paid plan: top-frame redirect to Shopify's billing confirmation page.
+      // After approval, Shopify will hit /api/billing/confirm and bring the
+      // merchant back into the embedded app.
+      redirectTopFrame(res.url);
+      return;
+    }
+    if (res.downgraded) {
+      shopify.toast.show(res.message || t("plans.planUpdated"));
+    }
+  }, [fetcher.state, fetcher.data, t]);
 
-  if (isLoading) {
-    return (
-      <s-page heading={t("plans.loadingTitle")}>
-        <PlanSkeletonGrid />
-      </s-page>
-    );
-  }
+  const handleUpgrade = (planId) => {
+    fetcher.submit({ planId: String(planId) }, { method: "post" });
+  };
 
   const usageProgress =
     usage && !usage.unlimited && usage.limit > 0
@@ -85,7 +81,7 @@ export default function Plans() {
       : 0;
 
   return (
-    <s-page>
+    <s-page heading={t("plans.title")}>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
           <s-heading size="large">{t("plans.title")}</s-heading>
@@ -160,7 +156,7 @@ export default function Plans() {
 
                 <s-button
                   variant="primary"
-                  disabled={plan.current || pendingPlanId !== null || undefined}
+                  disabled={plan.current || isSubmitting || undefined}
                   loading={pendingPlanId === plan.id ? "" : undefined}
                   onClick={() => handleUpgrade(plan.id)}
                 >

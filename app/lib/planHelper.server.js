@@ -3,13 +3,25 @@ import {
   PLAN_IDS,
   SUBSCRIPTION_STATUS,
   USAGE_PERIOD_DAYS,
+  FEATURE_KEYS,
 } from "../constant/index.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const PERIOD_MS = USAGE_PERIOD_DAYS * MS_PER_DAY;
 
-export const getCurrentPlanId = (shopRecord) =>
+const getStoredPlanId = (shopRecord) =>
   shopRecord?.subscription?.planId || PLAN_IDS.FREE;
+
+// A paid plan only "counts" while its Shopify subscription is ACTIVE.
+// If status drifts (missed webhook, expired sub still in DB, etc.) callers
+// see FREE — entitlements, usage limits, and UI stay consistent without
+// requiring the row to be rewritten first.
+export const getCurrentPlanId = (shopRecord) => {
+  const planId = getStoredPlanId(shopRecord);
+  if (planId === PLAN_IDS.FREE) return PLAN_IDS.FREE;
+  const status = shopRecord?.subscription?.status;
+  return status === SUBSCRIPTION_STATUS.ACTIVE ? planId : PLAN_IDS.FREE;
+};
 
 export const isFreePlan = (shopRecord) =>
   getCurrentPlanId(shopRecord) === PLAN_IDS.FREE;
@@ -83,6 +95,21 @@ export const getUsageStatus = (shopRecord, plan) => {
 
 export const planUnlocksFeature = (plan, featureKey) =>
   Array.isArray(plan?.featureKeys) && plan.featureKeys.includes(featureKey);
+
+// Maps a Plan's featureKeys → the Shop.permissions shape stored in Mongo.
+// Single source of truth for entitlements: paid → upgrade unlocks, trial end /
+// cancel / downgrade collapses to whatever the FREE plan declares.
+export const permissionsForPlan = (plan) => ({
+  skinEnabled: planUnlocksFeature(plan, FEATURE_KEYS.SKIN_ANALYSIS),
+  hairEnabled: planUnlocksFeature(plan, FEATURE_KEYS.HAIR_ANALYSIS),
+});
+
+// Loads the FREE plan record so we can derive the post-cancel permission set
+// without hardcoding it. Falls back to all-disabled if the FREE plan is missing.
+export const getFreePlanPermissions = async () => {
+  const freePlan = await prisma.plan.findUnique({ where: { id: PLAN_IDS.FREE } });
+  return permissionsForPlan(freePlan);
+};
 
 // Atomic-ish increment guarded by quota. Returns { allowed, status, reason }.
 // We rollover the period inline first, then use a conditional updateMany

@@ -84,7 +84,7 @@ export function Customization({ type }) {
     if (currentModuleKey === "hairCare") hasAccess = permissions?.hairEnabled;
 
     if (!hasAccess) {
-      shopify.toast.show("Upgrade your plan for use", { isError: true });
+      shopify.toast.show("Upgrade your plan for use this Features", { isError: true });
       navigate("/app/customization");
     }
   }, [permissions, isShopLoading, currentModuleKey]);
@@ -204,7 +204,7 @@ export function Customization({ type }) {
     <s-page
       heading={title} 
     >
-      <s-link slot="breadcrumb-actions" href="/app/customization">{ t("Customization.settings.back") }</s-link>
+      <s-link slot="breadcrumb-actions" href="/app/customization">{ t("cmn.back") }</s-link>
 
       <LoadingOverlay active={isSavebarLoading}>
         <s-grid gridTemplateColumns="1fr 2fr" gap="base">

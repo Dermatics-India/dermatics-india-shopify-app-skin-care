@@ -36,6 +36,7 @@ function AppShell() {
         </Link>
         <Link to="/app/customization">{t("NavigationMenu.customization.title")}</Link>
         <Link to="/app/analytics">{t("NavigationMenu.analytics")}</Link>
+        <Link to="/app/customers">{t("NavigationMenu.customers")}</Link>
         <Link to="/app/plans">{t("NavigationMenu.plans")}</Link>
       </NavMenu>
       <Outlet />

@@ -30,7 +30,8 @@
       "selectRange": "Select date range",
       "apply": "Apply",
       "cancel": "Cancel"
-    }
+    },
+    "back": "Back"
   },
   "NavigationMenu": {
     "setupGuide": "Setup Guide",
@@ -40,7 +41,8 @@
       "hair": "Hair Care"
     },
     "analytics": "Analytics",
-    "plans": "Plans"
+    "plans": "Plans",
+    "customers": "Customers"
   },
   "NotFound": {
     "description": "Check the URL and try again, or use the search bar to find what you need.",
@@ -110,7 +112,6 @@
       "titleWidget": "Customize Widget",
       "titleSkin": "Customize Skin Care",
       "titleHair": "Customize Hair Care",
-      "back": "Back",
       "save": "Save Configuration",
       "success": "Configuration saved successfully!",
       "tabs": {
@@ -204,6 +205,17 @@
     "aov": {
       "title": "AOV",
       "change": "+5.1% from last month"
+    }
+  },
+  "customers": {
+    "title": "Customers",
+    "tableColumn": {
+      "customer": "Name/Email",
+      "lastAnalysis": "Last Analysis",
+      "primaryConcern": "Primary Concern",
+      "scans": "Total Scans",
+      "orders": "Orders",
+      "totalSpend": "Total Spend"
     }
   }
 }

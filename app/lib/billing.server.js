@@ -12,6 +12,8 @@ import {
   getUsageStatus,
   rolloverUsageIfExpired,
   resetUsageWindow,
+  permissionsForPlan,
+  getFreePlanPermissions,
 } from "./planHelper.server.js";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -81,6 +83,31 @@ export const getPlans = async ({ shopRecord }) => {
   };
 };
 
+// Centralized "drop to FREE" — used by every code path that ends a paid sub:
+// in-app downgrade, declined/cancelled charge in confirmBilling, and the
+// app_subscriptions/update webhook for terminal states (CANCELLED, EXPIRED,
+// DECLINED). One place to keep the post-cancel shape consistent.
+const endSubscriptionToFree = async (shopRecord) => {
+  const freePermissions = await getFreePlanPermissions();
+  await prisma.shop.update({
+    where: { id: shopRecord.id },
+    data: {
+      subscription: {
+        id: null,
+        planId: PLAN_IDS.FREE,
+        status: SUBSCRIPTION_STATUS.CANCELLED,
+        activatedAt: shopRecord.subscription?.activatedAt || null,
+        cancelledAt: new Date(),
+        trialEndsAt: null,
+        // Preserve trialUsed so a re-upgrade doesn't grant a second trial.
+        trialUsed: shopRecord.subscription?.trialUsed || false,
+      },
+      usage: { count: 0, periodStart: new Date() },
+      permissions: freePermissions,
+    },
+  });
+};
+
 const cancelActiveSubscription = async (admin, subscriptionId) => {
   if (!subscriptionId) return null;
   const resp = await admin.graphql(
@@ -146,21 +173,7 @@ export const createPlanSubscription = async ({ admin, shopRecord, planId }) => {
       console.error("Cancel subscription error:", err.message);
     }
 
-    await prisma.shop.update({
-      where: { id: shopRecord.id },
-      data: {
-        subscription: {
-          id: null,
-          planId: PLAN_IDS.FREE,
-          status: SUBSCRIPTION_STATUS.CANCELLED,
-          activatedAt: shopRecord.subscription?.activatedAt || null,
-          cancelledAt: new Date(),
-          trialEndsAt: null,
-          trialUsed: shopRecord.subscription?.trialUsed || false,
-        },
-        usage: { count: 0, periodStart: new Date() },
-      },
-    });
+    await endSubscriptionToFree(shopRecord);
 
     return {
       status: 200,
@@ -283,6 +296,112 @@ export const createPlanSubscription = async ({ admin, shopRecord, planId }) => {
   };
 };
 
+// Webhook: app_subscriptions/update.
+// Fires whenever a subscription transitions state — including events the
+// in-app flow never sees: trial expiry without payment method (FROZEN /
+// EXPIRED), failed renewal (FROZEN), merchant-initiated cancel from the
+// Shopify admin (CANCELLED), or admin-side reactivation (ACTIVE).
+// Without this, the DB silently drifts out of sync with Shopify and
+// merchants keep paid features after their subscription ends.
+export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
+  console.log("shop::::", shop)
+  console.log("payload::::", payload)
+  const sub = payload?.app_subscription;
+  console.log("sub::::", sub)
+  if (!sub) {
+    console.warn("[billing webhook] missing app_subscription payload", { shop });
+    return;
+  }
+
+  const incomingSubId = sub.admin_graphql_api_id || null;
+  const incomingStatus = sub.status;
+
+  const shopRecord = await prisma.shop.findUnique({ where: { shop } });
+  if (!shopRecord) {
+    console.warn("[billing webhook] no shop record", { shop });
+    return;
+  }
+
+  const storedSubId = shopRecord.subscription?.id || null;
+
+  // If the webhook references a subscription we don't track, ignore it —
+  // it's likely a stale charge from a previous install or a parallel test.
+  if (storedSubId && incomingSubId && storedSubId !== incomingSubId) {
+    console.log("[billing webhook] subscription id mismatch, ignoring", {
+      shop,
+      storedSubId,
+      incomingSubId,
+    });
+    return;
+  }
+
+  const baseSub = {
+    id: storedSubId,
+    planId: shopRecord.subscription?.planId || PLAN_IDS.FREE,
+    status: incomingStatus,
+    activatedAt: shopRecord.subscription?.activatedAt || null,
+    cancelledAt: shopRecord.subscription?.cancelledAt || null,
+    trialEndsAt: shopRecord.subscription?.trialEndsAt || null,
+    trialUsed: shopRecord.subscription?.trialUsed || false,
+  };
+
+  if (incomingStatus === SUBSCRIPTION_STATUS.ACTIVE) {
+    // Activation can arrive via webhook before the merchant lands back on
+    // the confirm route (or instead of it, if they close the tab early).
+    // Re-derive permissions from the plan in case this is the activation
+    // event itself (state was PENDING locally, now ACTIVE).
+    const activePlan = await prisma.plan.findUnique({
+      where: { id: baseSub.planId },
+    });
+    await prisma.shop.update({
+      where: { id: shopRecord.id },
+      data: {
+        subscription: {
+          ...baseSub,
+          activatedAt: shopRecord.subscription?.activatedAt || new Date(),
+        },
+        permissions: permissionsForPlan(activePlan),
+      },
+    });
+    return;
+  }
+
+  if (
+    incomingStatus === SUBSCRIPTION_STATUS.CANCELLED ||
+    incomingStatus === SUBSCRIPTION_STATUS.EXPIRED ||
+    incomingStatus === SUBSCRIPTION_STATUS.DECLINED
+  ) {
+    // Covers: merchant cancel from Shopify admin, trial expiry without a
+    // valid payment method (EXPIRED), and merchant declining the charge
+    // page (DECLINED). Drop to Free, reset usage, and revoke paid module
+    // permissions so the storefront widget locks immediately.
+    await endSubscriptionToFree(shopRecord);
+    return;
+  }
+
+  // FROZEN — Shopify holds the subscription (failed renewal, dispute) but
+  // it can be reactivated within a grace window. Revoke paid features now
+  // so the merchant doesn't keep using them on an unpaid sub; if it goes
+  // ACTIVE again the next webhook restores them.
+  if (incomingStatus === SUBSCRIPTION_STATUS.FROZEN) {
+    const freePermissions = await getFreePlanPermissions();
+    await prisma.shop.update({
+      where: { id: shopRecord.id },
+      data: {
+        subscription: baseSub,
+        permissions: freePermissions,
+      },
+    });
+    return;
+  }
+
+  // PENDING / anything else — record status only, leave entitlements alone.
+  await prisma.shop.update({
+    where: { id: shopRecord.id },
+    data: { subscription: baseSub },
+  });
+};
+
 // GET /api/billing/confirm — top-frame redirect after merchant approves charge.
 // Loads the offline session via unauthenticated.admin, queries the subscription,
 // updates our DB, resets usage window, and redirects back into the embedded app.
@@ -330,6 +449,11 @@ export const confirmBilling = async ({ shop, chargeId, planId }) => {
         ? new Date(now.getTime() + sub.trialDays * 24 * 60 * 60 * 1000)
         : null;
 
+    // Look up the plan now so we can grant the right entitlements atomically
+    // with the subscription flip — otherwise the merchant lands back in the
+    // app with an ACTIVE paid sub but the old (free) module permissions.
+    const newPlan = await prisma.plan.findUnique({ where: { id: Number(planId) } });
+
     await prisma.shop.update({
       where: { id: shopRecord.id },
       data: {
@@ -342,12 +466,23 @@ export const confirmBilling = async ({ shop, chargeId, planId }) => {
           trialEndsAt,
           trialUsed: trialEndsAt ? true : shopRecord.subscription?.trialUsed || false,
         },
+        permissions: permissionsForPlan(newPlan),
       },
     });
 
     // Fresh quota window starts when the new plan activates.
     await resetUsageWindow(shopRecord.id);
+  } else if (
+    sub.status === SUBSCRIPTION_STATUS.DECLINED ||
+    sub.status === SUBSCRIPTION_STATUS.CANCELLED ||
+    sub.status === SUBSCRIPTION_STATUS.EXPIRED
+  ) {
+    // Merchant declined the charge page or the new sub never became active.
+    // Drop the dangling sub.id and revert to FREE so we don't leave a
+    // half-created paid subscription on the record.
+    await endSubscriptionToFree(shopRecord);
   } else {
+    // PENDING / FROZEN — keep prior plan info, just record the new status.
     await prisma.shop.update({
       where: { id: shopRecord.id },
       data: {

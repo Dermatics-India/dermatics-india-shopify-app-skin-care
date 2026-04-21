@@ -1,0 +1,37 @@
+.customer-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.timeline-entry {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    padding-bottom: 20px;
+}
+
+.timeline-entry:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-marker {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding-top: 2px;
+}
+
+.timeline-line {
+    position: absolute;
+    top: 28px;
+    bottom: -16px;
+    width: 2px;
+    background: var(--p-color-border-subdued, #e1e3e5);
+}
+
+.timeline-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}

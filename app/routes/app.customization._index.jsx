@@ -21,13 +21,13 @@ export default function CustomizationIndex() {
 
   return (
     <s-page
-      // heading="customization"
+      heading={ t("Customization.title") }
     >
       <s-stack gap="small">
-        <s-stack >
+        {/* <s-stack >
           <s-heading >{t("Customization.title")}</s-heading>
           <s-paragraph tone="subdued">{t("Customization.subtitle")}</s-paragraph>
-        </s-stack>
+        </s-stack> */}
 
         <s-grid gridTemplateColumns="repeat(auto-fit, minmax(260px, 1fr))" gap="base">
           <CategoryCard
