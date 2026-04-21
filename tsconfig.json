@@ -3,7 +3,7 @@
   "exclude": ["node_modules", "build", "public/build"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "isolatedModules": true,
     "esModuleInterop": true,

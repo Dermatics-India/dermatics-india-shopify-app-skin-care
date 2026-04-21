@@ -22,8 +22,6 @@ const baseConfig = {
     },
     bubble: {
       boat: {
-        height: 60,
-        width: "80%",
         radius: 12,
         bgColor: "#f4f4f4",
         textColor: "#333333",
@@ -31,8 +29,6 @@ const baseConfig = {
         fontWeight: "normal",
       },
       user: {
-        height: 60,
-        width: "80%",
         radius: 12,
         bgColor: "#f4f4f4",
         textColor: "#333333",

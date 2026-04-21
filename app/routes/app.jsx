@@ -5,6 +5,9 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
 
 import { authenticate } from "../shopify.server";
+import { loadShopRecord } from "../lib/shopAuth.server";
+import { getShopPayload } from "../lib/shop.server";
+import { getAppEmbedStatus } from "../lib/appEmbed.server";
 import { I18nProvider } from "../providers/I18nProvider";
 import { ShopProvider } from "../providers/ShopProvider";
 import appStyles from "../styles/app.css?url";
@@ -12,8 +15,15 @@ import appStyles from "../styles/app.css?url";
 export const links = () => [{ rel: "stylesheet", href: appStyles }];
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  const { admin, session } = await authenticate.admin(request);
+  const shopRecord = await loadShopRecord(session);
+  const shopPayload = getShopPayload(shopRecord);
+  const embedResult = await getAppEmbedStatus({ admin, shopRecord });
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shopData: shopPayload.data,
+    embedStatus: { isEnabled: !!embedResult?.isEnabled },
+  };
 };
 
 function AppShell() {

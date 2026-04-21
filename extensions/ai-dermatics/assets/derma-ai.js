@@ -1194,16 +1194,16 @@ class DermaAIWizard {
 }
 
 /** Expose class for multiple instances: `new DermaAIWizard({ baseUrl, flowConfig })` */
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && !window.__DERMA_AI_BOOTED) {
+  window.__DERMA_AI_BOOTED = true;
   window.DermaAIWizard = DermaAIWizard;
+
+  const dermaAIWizard = new DermaAIWizard({
+    proxy: "/apps/derma-advisor",
+    baseUrl: "https://app.dermatics.in",
+    customer: window.DERMA_AI_CUSTOMER
+  });
+
+  console.log("starting the APP-----")
+  dermaAIWizard.initLauncher();
 }
-
-/** Default singleton */
-const dermaAIWizard = new DermaAIWizard({
-  proxy: "/apps/derma-advisor",
-  baseUrl: "https://app.dermatics.in",
-  customer: window.DERMA_AI_CUSTOMER
-});
-
-console.log("starting the APP-----")
-dermaAIWizard.initLauncher();

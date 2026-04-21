@@ -15,6 +15,7 @@ export const getSettings = async ({ shopRecord }) => {
       body: { success: false, message: "No settings found for this shop" },
     };
   }
+  // console.dir(settings, { depth: null, colors: true });
 
   return { status: 200, body: { success: true, data: settings } };
 };

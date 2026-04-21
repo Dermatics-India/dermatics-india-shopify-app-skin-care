@@ -108,8 +108,6 @@ type WidgetConfig {
 }
 
 type BubbleConfig {
-  height      Int    @default(60)
-  width       String @default("80%")
   radius      Int    @default(12)
   bgColor     String @default("#f4f4f4")
   textColor   String @default("#333333")
@@ -171,13 +169,3 @@ model Settings {
   updatedAt DateTime        @updatedAt
 }
 
-// -------------------- User Analysis --------------------
-
-model UserAnalysis {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  shop      String?
-  sessionId String?
-  concerns  String[]
-  routine   Json?
-  createdAt DateTime @default(now())
-}

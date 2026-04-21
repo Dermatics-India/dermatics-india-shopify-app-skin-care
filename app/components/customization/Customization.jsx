@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "@remix-run/react";
+import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { useAppBridge, SaveBar } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
 import { produce } from "immer";
 
-import { useApi } from "../../hooks/useApi";
 import { useCustomizeData } from "../../hooks/useCustomizeData";
 import { useShop } from "../../providers/ShopProvider";
 
@@ -12,7 +11,7 @@ import { WidgetPreview } from "./WidgetPreview";
 import { WidgetSettings } from "./settings/WidgetSettings";
 import { DrawerSettings } from "./settings/DrawerSettings";
 import { ModuleSettings } from "./settings/ModuleSettings";
-import { LoadingOverlay, WidgetPageLoader } from "../common";
+import { LoadingOverlay } from "../common";
 
 import { defaultSettings } from "../../data/customization";
 import { ENDPOINTS } from "../../utils/endpoints";
@@ -42,9 +41,12 @@ export function Customization({ type }) {
   const shopify = useAppBridge();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const api = useApi();
-  const { permissions } = useShop();
+  const { permissions, isLoading: isShopLoading } = useShop();
   const settingsSaveBarId = "settings-save-bar";
+
+  const loaderData = useLoaderData();
+  const saveFetcher = useFetcher();
+  const uploadFetcher = useFetcher();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -59,17 +61,23 @@ export function Customization({ type }) {
         modules: defaultSettings.modules,
       };
 
-  const [selectedTab, setSelectedTab] = useState(0);
-  const [settings, setSettings] = useState(fallbackSettings);
-  const [prevSettings, setPrevSettings] = useState(fallbackSettings);
-  const [isPageLoading, setPageLoading] = useState(true);
-  const [isSavebarLoading, setSavebarLoading] = useState(false);
-  const [isImageUploading, setIsImageUploading] = useState(false);
+  const loaded = loaderData?.data;
+  const initialSettings = {
+    widget: loaded?.widget || fallbackSettings.widget,
+    drawer: loaded?.drawer || fallbackSettings.drawer,
+    modules: loaded?.modules || fallbackSettings.modules,
+  };
 
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [settings, setSettings] = useState(initialSettings);
+  const [prevSettings, setPrevSettings] = useState(initialSettings);
+
+  const isSavebarLoading = saveFetcher.state !== "idle";
+  const isImageUploading = uploadFetcher.state !== "idle";
   const isDirty = JSON.stringify(settings) !== JSON.stringify(prevSettings);
 
   useEffect(() => {
-    if (isPageLoading) return;
+    if (isShopLoading) return;
     let hasAccess = false;
     if (currentModuleKey === "customize") hasAccess = true;
     if (currentModuleKey === "skinCare") hasAccess = permissions?.skinEnabled;
@@ -79,56 +87,41 @@ export function Customization({ type }) {
       shopify.toast.show("Upgrade your plan for use", { isError: true });
       navigate("/app/customization");
     }
-  }, [permissions, isPageLoading, currentModuleKey]);
-
-  const getSettingsData = () => {
-    setPageLoading(true);
-    api
-      .get(ENDPOINTS.GET_SETTINGS)
-      .then((res) => {
-        const settingsObj = {
-          widget: res?.data?.widget || fallbackSettings?.widget,
-          drawer: res?.data?.drawer || fallbackSettings?.drawer,
-          modules: res?.data?.modules || fallbackSettings?.modules,
-        };
-        setSettings(settingsObj);
-        setPrevSettings(settingsObj);
-      })
-      .catch((error) => {
-        shopify.toast.show(error.message, { isError: true });
-      })
-      .finally(() => setPageLoading(false));
-  };
-
-  const updateSettings = () => {
-    setSavebarLoading(true);
-    const payload = {
-      widget: settings.widget,
-      drawer: settings.drawer,
-      modules: settings.modules,
-    };
-    api
-      .post(ENDPOINTS.UPDATE_SETTINGS, payload)
-      .then((res) => {
-        const data = res?.data;
-        const syncSettings = {
-          widget: data?.widget,
-          drawer: data?.drawer,
-          modules: data?.modules,
-        };
-        setSettings(syncSettings);
-        setPrevSettings(syncSettings);
-        shopify.toast.show(res?.message);
-      })
-      .catch((error) => {
-        shopify.toast.show(error.message, { isError: true });
-      })
-      .finally(() => setSavebarLoading(false));
-  };
+  }, [permissions, isShopLoading, currentModuleKey]);
 
   useEffect(() => {
-    getSettingsData();
-  }, [type]);
+    if (saveFetcher.state !== "idle" || !saveFetcher.data) return;
+    if (saveFetcher.data.success) {
+      const data = saveFetcher.data.data;
+      const syncSettings = {
+        widget: data?.widget,
+        drawer: data?.drawer,
+        modules: data?.modules,
+      };
+      setSettings(syncSettings);
+      setPrevSettings(syncSettings);
+      shopify.toast.show(saveFetcher.data.message);
+    } else {
+      shopify.toast.show(saveFetcher.data.error || saveFetcher.data.message || "Save failed", { isError: true });
+    }
+  }, [saveFetcher.state, saveFetcher.data]);
+
+  useEffect(() => {
+    if (uploadFetcher.state !== "idle" || !uploadFetcher.data) return;
+    if (uploadFetcher.data.success) {
+      const uploadedUrl = uploadFetcher.data.data?.url;
+      if (!uploadedUrl) return;
+      setSettings(
+        produce((draft) => {
+          const moduleDraft = draft.modules[currentModuleKey];
+          moduleDraft.image = { ...(moduleDraft.image || {}), url: uploadedUrl };
+        }),
+      );
+      shopify.toast.show("Image uploaded");
+    } else {
+      shopify.toast.show(uploadFetcher.data.error || uploadFetcher.data.message || "Failed to upload image", { isError: true });
+    }
+  }, [uploadFetcher.state, uploadFetcher.data, currentModuleKey]);
 
   useEffect(() => {
     if (isDirty) {
@@ -166,24 +159,16 @@ export function Customization({ type }) {
     );
   };
 
-  const handleModuleImageUpload = async (file) => {
+  const handleModuleImageUpload = (file) => {
     if (!file || !currentModuleKey) return;
-    setIsImageUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-      formData.append("moduleType", currentModuleKey);
-
-      const res = await api.postFormData(ENDPOINTS.UPLOAD_CUSTOMIZATION_IMAGE, formData);
-      const uploadedUrl = res?.data?.url;
-      if (!uploadedUrl) throw new Error("Image upload failed");
-      handleModuleChange(["image", "url"], uploadedUrl);
-      shopify.toast.show("Image uploaded");
-    } catch (error) {
-      shopify.toast.show(error.message || "Failed to upload image", { isError: true });
-    } finally {
-      setIsImageUploading(false);
-    }
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("moduleType", currentModuleKey);
+    uploadFetcher.submit(formData, {
+      method: "POST",
+      action: ENDPOINTS.UPLOAD_CUSTOMIZATION_IMAGE,
+      encType: "multipart/form-data",
+    });
   };
 
   const handleDiscard = () => {
@@ -191,11 +176,22 @@ export function Customization({ type }) {
     setSettings(prevSettings);
   };
 
-  const handleSave = () => updateSettings();
+  const handleSave = () => {
+    saveFetcher.submit(
+      {
+        widget: settings.widget,
+        drawer: settings.drawer,
+        modules: settings.modules,
+      },
+      {
+        method: "POST",
+        action: ENDPOINTS.UPDATE_SETTINGS,
+        encType: "application/json",
+      },
+    );
+  };
 
   const handleTabChange = useCallback((i) => setSelectedTab(i), []);
-
-  if (isPageLoading) return <WidgetPageLoader />;
 
   const title =
     type === "customize"

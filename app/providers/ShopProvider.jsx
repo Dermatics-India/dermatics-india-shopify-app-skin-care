@@ -1,58 +1,70 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useApi } from "../hooks/useApi";
+import { createContext, useCallback, useContext, useEffect, useRef } from "react";
+import { useFetcher, useRevalidator, useRouteLoaderData } from "@remix-run/react";
+
 import { ENDPOINTS } from "../utils/endpoints";
 
 const ShopContext = createContext(null);
 
 export function ShopProvider({ children }) {
-  const api = useApi();
-  const [shopData, setShopData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [embedStatus, setEmbedStatus] = useState({ isEnabled: false, isLoading: true });
+  const routeData = useRouteLoaderData("routes/app");
+  const revalidator = useRevalidator();
+  const embedFetcher = useFetcher();
+  const pendingEmbedResolverRef = useRef(null);
 
-  const fetchShopData = useCallback(() => {
-    return api.get(ENDPOINTS.GET_SHOP)
-      .then((res) => {
-        setShopData(res?.data);
-        return res?.data;
-      })
-      .catch((err) => {
-        console.error("Failed to fetch shop data:", err);
-        setError(err);
-      });
-  }, []);
+  const shopData = routeData?.shopData || null;
 
-  const checkEmbedStatus = useCallback(() => {
-    setEmbedStatus((prev) => ({ ...prev, isLoading: true }));
-    return api.get(ENDPOINTS.APP_EMBED_STATUS)
-      .then((res) => {
-        setEmbedStatus({ isEnabled: !!res?.isEnabled, isLoading: false });
-        return !!res?.isEnabled;
-      })
-      .catch(() => {
-        setEmbedStatus({ isEnabled: false, isLoading: false });
-        return false;
-      });
-  }, []);
+  // Prefer the latest fetcher result once the user has manually refreshed; otherwise
+  // fall back to the value that came in via the parent route loader.
+  const initialEmbedEnabled = !!routeData?.embedStatus?.isEnabled;
+  const currentEmbedEnabled = embedFetcher.data
+    ? !!embedFetcher.data.isEnabled
+    : initialEmbedEnabled;
 
-  useEffect(() => {
-    Promise.all([fetchShopData(), checkEmbedStatus()])
-      .finally(() => setIsLoading(false));
-  }, []);
+  const embedStatus = {
+    isEnabled: currentEmbedEnabled,
+    isLoading: embedFetcher.state !== "idle",
+  };
 
+  const isLoading = revalidator.state !== "idle";
   const permissions = shopData?.permissions || { skinEnabled: true, hairEnabled: true };
 
+  const checkEmbedStatus = useCallback(
+    () =>
+      new Promise((resolve) => {
+        pendingEmbedResolverRef.current = resolve;
+        embedFetcher.load(ENDPOINTS.APP_EMBED_STATUS);
+      }),
+    [embedFetcher],
+  );
+
+  useEffect(() => {
+    if (
+      embedFetcher.state === "idle" &&
+      embedFetcher.data &&
+      pendingEmbedResolverRef.current
+    ) {
+      pendingEmbedResolverRef.current(!!embedFetcher.data.isEnabled);
+      pendingEmbedResolverRef.current = null;
+    }
+  }, [embedFetcher.state, embedFetcher.data]);
+
+  const refreshShop = useCallback(() => {
+    revalidator.revalidate();
+    return Promise.resolve(shopData);
+  }, [revalidator, shopData]);
+
   return (
-    <ShopContext.Provider value={{
-      shopData,
-      permissions,
-      isLoading,
-      error,
-      embedStatus,
-      checkEmbedStatus,
-      refreshShop: fetchShopData,
-    }}>
+    <ShopContext.Provider
+      value={{
+        shopData,
+        permissions,
+        isLoading,
+        error: null,
+        embedStatus,
+        checkEmbedStatus,
+        refreshShop,
+      }}
+    >
       {children}
     </ShopContext.Provider>
   );
