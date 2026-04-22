@@ -1,36 +1,76 @@
 import prisma from "../db.server";
 import { sessionStorage } from "../shopify.server";
-import { PLAN_IDS, SUBSCRIPTION_STATUS } from "../constant/index.js";
+import { PLAN_IDS } from "../constant/index.js";
 
-// Called from the afterAuth hook (see shopify.server.js) to upsert the
-// merchant's Shop + default Settings on a fresh OAuth install.
+// Called from the afterAuth hook (see shopify.server.js). Three scenarios:
+//   1. brand-new shop        → create with clean free-plan defaults
+//   2. reinstall (was uninstalled) → reset subscription/permissions/usage to
+//      free-plan defaults. Shopify auto-cancels the merchant's paid sub on
+//      uninstall, so our DB must follow. trialUsed is preserved so a merchant
+//      can't farm unlimited trials by reinstalling.
+//   3. reauth / scope change (still installed) → refresh token only. NEVER
+//      touch subscription/permissions here — an ACTIVE paying merchant who
+//      accepts a scope upgrade would otherwise get their paid sub wiped.
 export const onAppInstall = async ({ session }) => {
   try {
     const shop = session.shop;
     const accessToken = session.accessToken;
 
-    const shopRecord = await prisma.shop.upsert({
-      where: { shop },
-      create: {
-        shop,
-        accessToken,
-        isInstalled: true,
-        installedAt: new Date(),
-        permissions: { skinEnabled: true, hairEnabled: true },
-        settings: { appEmbedEnabled: false, isCustomized: false },
-        subscription: {
-          planId: PLAN_IDS.FREE,
-          status: null,
-          trialUsed: false,
+    const existing = await prisma.shop.findUnique({ where: { shop } });
+
+    let shopRecord;
+    if (!existing) {
+      shopRecord = await prisma.shop.create({
+        data: {
+          shop,
+          accessToken,
+          isInstalled: true,
+          installedAt: new Date(),
+          permissions: { skinEnabled: true, hairEnabled: true },
+          settings: { appEmbedEnabled: false, isCustomized: false },
+          subscription: {
+            planId: PLAN_IDS.FREE,
+            status: null,
+            trialUsed: false,
+          },
+          usage: { count: 0, periodStart: new Date() },
         },
-        usage: { count: 0, periodStart: new Date() },
-      },
-      update: {
-        accessToken,
-        isInstalled: true,
-        installedAt: new Date(),
-      },
-    });
+      });
+    } else if (!existing.isInstalled) {
+      // Reinstall — wipe anything that reflects a prior paid lifecycle and
+      // put the merchant back on the Free plan with full free-plan
+      // entitlements. Keep trialUsed.
+      shopRecord = await prisma.shop.update({
+        where: { id: existing.id },
+        data: {
+          accessToken,
+          isInstalled: true,
+          installedAt: new Date(),
+          uninstalledAt: null,
+          permissions: { skinEnabled: true, hairEnabled: true },
+          subscription: {
+            id: null,
+            planId: PLAN_IDS.FREE,
+            interval: null,
+            status: null,
+            activatedAt: null,
+            cancelledAt: null,
+            trialEndsAt: null,
+            trialUsed: existing.subscription?.trialUsed || false,
+          },
+          usage: { count: 0, periodStart: new Date() },
+        },
+      });
+    } else {
+      // Reauth / scope change — row is already the merchant's real state.
+      shopRecord = await prisma.shop.update({
+        where: { id: existing.id },
+        data: {
+          accessToken,
+          installedAt: new Date(),
+        },
+      });
+    }
 
     if (!shopRecord) {
       throw new Error("Failed to create or retrieve shopRecord");
@@ -82,10 +122,14 @@ export const onAppUninstall = async ({ shop }) => {
           isInstalled: false,
           accessToken: null,
           uninstalledAt: new Date(),
+          permissions: { skinEnabled: true, hairEnabled: true },
           subscription: {
             id: null,
             planId: PLAN_IDS.FREE,
-            status: SUBSCRIPTION_STATUS.CANCELLED,
+            // null = no paid subscription (same convention as fresh install
+            // and endSubscriptionToFree). `status` is strictly about the
+            // paid lifecycle; FREE shops have no status.
+            status: null,
             activatedAt: shopRecord.subscription?.activatedAt || null,
             cancelledAt: new Date(),
             trialEndsAt: null,

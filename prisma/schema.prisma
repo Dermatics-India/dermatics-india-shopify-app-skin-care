@@ -39,9 +39,9 @@ model Plan {
   id           Int      @id @map("_id")
   name         String
   description  String?
-  price        Float
+  monthlyPrice Float    @default(0)
+  yearlyPrice  Float    @default(0)
   currency     String   @default("USD")
-  interval     String   @default("month") // "month" | "year"
   features     String[]
   featureKeys  String[] @default([])
   isUnlimited  Boolean  @default(false)
@@ -66,6 +66,7 @@ type ShopSettingsEmbed {
 type ShopSubscription {
   id           String?
   planId       Int       @default(1)
+  interval     String?   // "month" | "year" — which billing cadence the merchant chose
   status       String?
   activatedAt  DateTime?
   cancelledAt  DateTime?
@@ -89,7 +90,6 @@ model Shop {
   subscription   ShopSubscription
   usage          ShopUsage
   uninstalledAt  DateTime?
-
   appSettings    Settings?
 }
 

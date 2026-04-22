@@ -362,3 +362,9 @@ Branching
 note template: develop, master
 remix template: [migrate, main]
 current main branch: main
+
+<!-- ------ Deployment steps ------- -->
+npm run setup
+npm run seed
+npm run build
+npm run dev / deploy

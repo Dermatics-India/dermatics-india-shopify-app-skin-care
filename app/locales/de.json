@@ -177,7 +177,16 @@
     "resets": "Resets {{date}}",
     "current": "Current",
     "perMonth": "/mo",
-    "freeTrialBadge": "{{days}}-day free trial"
+    "perYear": "/yr",
+    "freeTrialBadge": "{{days}}-day free trial",
+    "startTrial": "Start {{days}}-day Free Trial",
+    "switchTo": "Switch to {{cadence}}",
+    "billedAs": "Billed {{cadence}}",
+    "toggle": {
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "aria": "Billing cadence"
+    }
   },
   "analytics": {
     "title": "Analytics",

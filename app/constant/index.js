@@ -5,16 +5,24 @@ export const PLAN_IDS = {
   COMBO: 4,
 };
 
+// Shopify's enum names sent to appSubscriptionCreate.
 export const PLAN_INTERVALS = {
   EVERY_30_DAYS: "EVERY_30_DAYS",
   ANNUAL: "ANNUAL",
 };
 
+// Our internal short codes — what we store in `subscription.interval`
+// and what the Plans UI passes back to the action.
+export const BILLING_INTERVALS = {
+  MONTH: "month",
+  YEAR: "year",
+};
+
 // Mirrors Shopify's AppSubscriptionStatus enum values we care about.
 export const SUBSCRIPTION_STATUS = {
-  PENDING: "PENDING",
-  ACTIVE: "ACTIVE",
-  CANCELLED: "CANCELLED",
+  PENDING: "PENDING", 
+  ACTIVE: "ACTIVE",         // The merchant has approved the app subscription
+  CANCELLED: "CANCELLED",   // The app subscription has been cancelled.
   EXPIRED: "EXPIRED",
   DECLINED: "DECLINED",
   FROZEN: "FROZEN",

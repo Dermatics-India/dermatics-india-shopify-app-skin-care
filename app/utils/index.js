@@ -118,4 +118,15 @@ export const formatCurrency = (value) => {
   }).format(value);
 }
 
+// Top-frame navigation — required for Shopify billing confirmation pages,
+// which refuse to load inside the embedded app iframe.
+export const redirectTopFrame = (url) => {
+  if (typeof window === "undefined") return;
+  if (window.top && window.top !== window.self) {
+    window.top.location.href = url;
+  } else {
+    window.location.href = url;
+  }
+}
+
 

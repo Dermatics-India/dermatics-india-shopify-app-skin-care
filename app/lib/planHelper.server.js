@@ -6,7 +6,8 @@ import {
   FEATURE_KEYS,
 } from "../constant/index.js";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000; // Milliseconds of the Day 
 const PERIOD_MS = USAGE_PERIOD_DAYS * MS_PER_DAY;
 
 const getStoredPlanId = (shopRecord) =>
@@ -46,9 +47,12 @@ export const isSubscriptionActive = (shopRecord) => {
 };
 
 const isUsagePeriodExpired = (shopRecord) => {
-  const start = shopRecord?.usage?.periodStart;
-  if (!start) return true;
-  return Date.now() - new Date(start).getTime() >= PERIOD_MS;
+  const startTime = shopRecord?.usage?.periodStart;
+  if (!startTime) return true; // if periodStart Date not exist then return true 
+  const now = Date.now();  // Current Time in mili
+  const start = new Date(startTime).getTime();  // Start priods time in mili
+  // PERIOD_MS = totat miliseconds of plans
+  return now - start >= PERIOD_MS;
 };
 
 export const periodEndsAt = (shopRecord) => {
