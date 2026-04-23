@@ -142,17 +142,25 @@
         "headerColor": "Text Color",
         "bubbles": "Chat Bubbles",
         "bubbleBg": "Background Color",
-        "bubbleColor": "Text Color",
         "fontWeight": "Font Weight",
         "bubbleRadius": "Bubble Border Radius",
         "boat": "Boat",
-        "user": "User"
+        "user": "User",
+        "heading": "Heading",
+        "text": "Text",
+        "textColor": "Color",
+        "margin": "Margin (px)",
+        "marginTop": "Top",
+        "marginRight": "Right",
+        "marginBottom": "Bottom",
+        "marginLeft": "Left"
       },
       "preview": {
         "title": "Storefront Preview",
         "description": "Interact with the widget to see the drawer animations and styles.",
         "headerSkin": "Skin Analysis",
         "headerHair": "Hair Analysis",
+        "mockHeading": "Welcome",
         "mockMessage": "Hello! Welcome to your digital consultation. Let's get started!"
       }
     }

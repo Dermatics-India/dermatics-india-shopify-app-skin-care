@@ -107,23 +107,38 @@ type WidgetConfig {
   radius      Int    @default(30)
 }
 
+// Per-element text styling inside a chat bubble. The bubble has a heading
+// row and a text row; each gets its own font + spacing controls.
+type BubbleText {
+  fontSize     Int    @default(14)
+  fontWeight   String @default("normal")
+  color        String @default("#333333")
+  marginTop    Int    @default(0)
+  marginRight  Int    @default(0)
+  marginBottom Int    @default(0)
+  marginLeft   Int    @default(0)
+}
+
+// Chat-bubble card: only carries card-level styling (background + radius).
+// Text styling lives on the inner heading/text blocks.
 type BubbleConfig {
-  radius      Int    @default(12)
-  bgColor     String @default("#f4f4f4")
-  textColor   String @default("#333333")
-  fontSize    Int    @default(14)
-  fontWeight  String @default("normal")
+  bgColor String     @default("#f4f4f4")
+  radius  Int        @default(12)
+  heading BubbleText
+  text    BubbleText
 }
 
 type DrawerHeader {
+  label      String @default("Label Text")
   fontFamily String @default("sans-serif")
   fontSize   Int    @default(18)
+  fontWeight String @default("normal") 
   textColor  String @default("#ffffff")
   bgColor    String @default("#0084ff")
 }
 
 type DrawerBubbles {
-  boat BubbleConfig
+  boat BubbleConfig 
   user BubbleConfig
 }
 
@@ -134,7 +149,7 @@ type DrawerConfig {
 }
 
 type ModuleText {
-  label      String @default("")
+  label      String @default("Label Text")
   textColor  String @default("#333333")
   fontSize   Int    @default(14)
   fontWeight String @default("normal")

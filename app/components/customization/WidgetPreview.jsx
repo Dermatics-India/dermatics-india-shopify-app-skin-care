@@ -15,6 +15,18 @@ function resolveImageUrl(url, moduleKey) {
   return `${window.location.origin}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+// Mirrors _applyTextStyles in the storefront JS so the preview renders
+// heading / text rows exactly like the live widget will.
+function bubbleTextStyle(cfg) {
+  if (!cfg) return {};
+  return {
+    fontSize: cfg.fontSize != null ? `${cfg.fontSize}px` : undefined,
+    fontWeight: cfg.fontWeight || undefined,
+    color: cfg.color || undefined,
+    margin: `${cfg.marginTop || 0}px ${cfg.marginRight || 0}px ${cfg.marginBottom || 0}px ${cfg.marginLeft || 0}px`,
+  };
+}
+
 export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDrawerOpen }) {
   const { t } = useTranslation();
   const widgetStyle = getDynamicStyles(data, "widget");
@@ -93,20 +105,16 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
             className="chat-bubble"
             style={{
               backgroundColor: data.drawer.bubble.boat.bgColor,
-              color: data.drawer.bubble.boat.textColor,
-              fontSize: `${data.drawer.bubble.boat.fontSize}px`,
-              fontWeight: data.drawer.bubble.boat.fontWeight,
               borderRadius: `${data.drawer.bubble.boat.radius}px`,
-              borderBottomLeftRadius: "4px",
-              width:
-                typeof data.drawer.bubble.boat.width === "number"
-                  ? `${data.drawer.bubble.boat.width}px`
-                  : data.drawer.bubble.boat.width,
-              minHeight: `${data.drawer.bubble.boat.height}px`,
             }}
           >
-            {t("Customization.settings.preview.mockMessage") ||
-              "Hello! We are here to help you find the best items for your regimen."}
+            <div style={bubbleTextStyle(data.drawer.bubble.boat.heading)}>
+              {t("Customization.settings.preview.mockHeading") || "Welcome"}
+            </div>
+            <div style={bubbleTextStyle(data.drawer.bubble.boat.text)}>
+              {t("Customization.settings.preview.mockMessage") ||
+                "Hello! We are here to help you find the best items for your regimen."}
+            </div>
           </div>
 
           <div
@@ -167,14 +175,13 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
             className="chat-bubble"
             style={{
               alignSelf: "flex-end",
-              backgroundColor: data?.drawer?.bubble?.user.bgColor || "#ececec",
-              color: data?.drawer?.bubble?.user.textColor || "#333",
-              fontSize: `${data.drawer.bubble.user.fontSize}px`,
-              fontWeight: data.drawer.bubble.user.fontWeight,
+              backgroundColor: data?.drawer?.bubble?.user?.bgColor || "#ececec",
               borderRadius: `${data.drawer.bubble.user.radius}px`,
             }}
           >
-            I would like to do a quick analysis.
+            <div style={bubbleTextStyle(data.drawer.bubble.user.text)}>
+              I would like to do a quick analysis.
+            </div>
           </div>
         </div>
       </div>

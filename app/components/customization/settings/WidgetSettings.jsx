@@ -1,17 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
 
+// utils 
+import { getClampedNumber, onKeyDownNumField } from "~/utils";
+
 export function WidgetSettings({ data, onChange }) {
   const { t } = useTranslation();
   const { fontWeightOptions, widgetPositions } = useCustomizeData();
 
   const handleNumberChange = (field, value, min, max) => {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed)) {
-      onChange(field, min);
-      return;
-    }
-    onChange(field, Math.max(min, Math.min(max, parsed)));
+    const val = getClampedNumber(value, min, max)
+    onChange(field, val);
   };
 
   return (
@@ -33,12 +32,13 @@ export function WidgetSettings({ data, onChange }) {
         autocomplete="off"
       />
 
-      <s-text-field
+      <s-number-field
         label={t("Customization.settings.widget.fontSize")}
         type="number"
         min="10"
         max="36"
         value={String(data.widget.fontSize ?? 16)}
+        onKeyDown={onKeyDownNumField}
         onInput={(e) => handleNumberChange("fontSize", e.target.value, 0, 36)}
         autocomplete="off"
       />
@@ -53,30 +53,33 @@ export function WidgetSettings({ data, onChange }) {
         ))}
       </s-select>
 
-      <s-text-field
+      <s-number-field
         label={t("Customization.settings.widget.paddingX")}
         type="number"
         min="10"
         max="60"
         value={String(data.widget.paddingX ?? 24)}
+        onKeyDown={onKeyDownNumField}
         onInput={(e) => handleNumberChange("paddingX", e.target.value, 0, 60)}
         autocomplete="off"
       />
-      <s-text-field
+      <s-number-field
         label={t("Customization.settings.widget.paddingY")}
         type="number"
         min="4"
         max="40"
         value={String(data.widget.paddingY ?? 12)}
+        onKeyDown={onKeyDownNumField}
         onInput={(e) => handleNumberChange("paddingY", e.target.value, 0, 40)}
         autocomplete="off"
       />
-      <s-text-field
+      <s-number-field
         label={t("Customization.settings.widget.radius")}
         type="number"
         min="0"
         max="50"
         value={String(data.widget.radius ?? 30)}
+        onKeyDown={onKeyDownNumField}
         onInput={(e) => handleNumberChange("radius", e.target.value, 0, 50)}
         autocomplete="off"
       />

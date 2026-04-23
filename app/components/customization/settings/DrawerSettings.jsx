@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getClampedNumber } from "../../../utils";
+import { getClampedNumber, onKeyDownNumField } from "../../../utils";
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
 import { BubbleSettings } from "./BubbleSettings";
 
@@ -68,12 +68,13 @@ export function DrawerSettings({ data, onChange }) {
           ))}
         </s-select>
 
-        <s-text-field
+        <s-number-field
           label={t("Customization.settings.drawer.fontSize")}
           type="number"
           min="12"
           max="32"
           value={String(data.drawer.header.fontSize ?? 18)}
+          onKeyDown={onKeyDownNumField}
           onInput={(e) => handleNumberChange(["header", "fontSize"], e.target.value, 0, 32)}
           autocomplete="off"
         />
@@ -102,7 +103,6 @@ export function DrawerSettings({ data, onChange }) {
         ))}
       </div>
 
-      <div style={{ padding: "16px" }}>
         {selectedTab === 0 ? (
           <BubbleSettings
             fontWeightOptions={fontWeightOptions}
@@ -119,6 +119,5 @@ export function DrawerSettings({ data, onChange }) {
           />
         )}
       </div>
-    </div>
   );
 }

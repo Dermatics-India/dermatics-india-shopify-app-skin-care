@@ -192,6 +192,30 @@ class DermaAIWizard {
     Object.assign(el.style, styles);
   }
 
+  // Chat-bubble styling splits into three surfaces: the card, the heading
+  // row, and the text row. The card gets bgColor + radius; heading/text
+  // rows each get their own font settings + four-side margin.
+  _applyBubbleStyles(bubbleEl, cfg) {
+    if (!bubbleEl || !cfg) return;
+
+    if (cfg.bgColor) bubbleEl.style.backgroundColor = cfg.bgColor;
+    if (cfg.radius != null) bubbleEl.style.borderRadius = `${cfg.radius}px`;
+
+    const headingEl = bubbleEl.querySelector(".derma-ai-bubble-heading");
+    if (headingEl && cfg.heading) this._applyTextStyles(headingEl, cfg.heading);
+
+    const textEl = bubbleEl.querySelector(".derma-ai-bubble-text");
+    if (textEl && cfg.text) this._applyTextStyles(textEl, cfg.text);
+  }
+
+  _applyTextStyles(el, cfg) {
+    if (!el || !cfg) return;
+    if (cfg.fontSize != null) el.style.fontSize = `${cfg.fontSize}px`;
+    if (cfg.fontWeight) el.style.fontWeight = cfg.fontWeight;
+    if (cfg.color) el.style.color = cfg.color;
+    el.style.margin = `${cfg.marginTop || 0}px ${cfg.marginRight || 0}px ${cfg.marginBottom || 0}px ${cfg.marginLeft || 0}px`;
+  }
+
   _applyPositioning(el, position = "bottom-right") {
     el.style.position = "fixed";
     const offset = "20px"; // Distance from edge
@@ -405,11 +429,23 @@ class DermaAIWizard {
 
     screen.innerHTML = this.state.timeline
       .map((m) => {
+        const content = `
+        ${m.heading ? `<div class="derma-ai-bubble-heading">${m.heading}</div>` : ""}
+        ${m.text ? `<div class="derma-ai-bubble-text">${m.text || ""}</div>` : ""} 
+        `;
         if (m.type === "bot")
-          return `<div class="chat-row bot"><div class="bubble bot-bubble">${m.text}</div></div>`;
+          return `<div class="chat-row bot">
+                    <div class="derma-ai-bot-bubble">
+                      ${content}
+                    </div>
+                  </div>`;
         if (m.type === "user")
-          return `<div class="chat-row user"><div class="bubble user-bubble">${m.text}</div></div>`;
-        if (m.type === "ui") return `<div class="chat-ui-block">${m.html}</div>`;
+          return `<div class="chat-row user">
+                    <div class="derma-ai-user-bubble">
+                      ${content}
+                    </div>
+                  </div>`;
+        if (m.type === "ui") return `<div class="derma-ai-chat-ui-block">${m.html}</div>`;
         if (m.type === "system") {
           const styles = this._getSystemStyles(m.status); // error, warning, success
           return `
@@ -421,33 +457,29 @@ class DermaAIWizard {
       })
       .join("");
 
-    // Apply dynamic styles to all bot bubbles
     if (bubbleConfig?.boat) {
-      screen.querySelectorAll(".bot-bubble").forEach(el => {
-        this._applyDynamicStyles(el, bubbleConfig?.boat);
-        // Ensure width/height from your specific config are applied if present
-        // if (bubbleConfig.width) el.style.width = `${bubbleConfig.width}px`;
-        // if (bubbleConfig.height) el.style.minHeight = `${bubbleConfig.height}px`;
+      screen.querySelectorAll(".chat-row.bot .derma-ai-bot-bubble").forEach((el) => {
+        this._applyBubbleStyles(el, bubbleConfig.boat);
       });
     }
     if (bubbleConfig?.user) {
-      screen.querySelectorAll(".user-bubble").forEach(el => {
-        this._applyDynamicStyles(el, bubbleConfig?.user);
+      screen.querySelectorAll(".chat-row.user .derma-ai-user-bubble").forEach((el) => {
+        this._applyBubbleStyles(el, bubbleConfig.user);
       });
     }
 
     screen.scrollTop = screen.scrollHeight;
   }
 
-  addBot(text) {
-    if (!text) return;
-    this.state.timeline.push({ type: "bot", text: this.escapeHtml(text) });
+  addBot(obj) {
+    if (!obj || Object.keys(obj).length === 0) return;
+    this.state.timeline.push({ type: "bot", ...obj });
     this.renderChatUI();
   }
 
-  addUser(text) {
-    if (!text) return;
-    this.state.timeline.push({ type: "user", text: this.escapeHtml(text) });
+  addUser(obj) {
+    if (!obj || Object.keys(obj).length === 0) return;
+    this.state.timeline.push({ type: "user", ...obj });
     this.renderChatUI();
   }
 
@@ -458,7 +490,7 @@ class DermaAIWizard {
   addUI(html, attachListeners) {
     this.state.timeline.push({ type: "ui", html });
     this.renderChatUI();
-    const blocks = document.querySelectorAll("#derma-ai-screen .chat-ui-block");
+    const blocks = document.querySelectorAll("#derma-ai-screen .derma-ai-chat-ui-block");
     const root = blocks[blocks.length - 1];
     if (root && typeof attachListeners === "function") {
       attachListeners(root);
@@ -466,11 +498,10 @@ class DermaAIWizard {
   }
 
   notifyError(message) {
-    this.addBot(message || "Something went wrong. Please try again.");
+    this.addBot({ text: message || "Something went wrong. Please try again." });
   }
 
   setActiveFlow() {
-    console.log("uiSettings::::", this.uiSettings)
     // 1. Check Permissions (Subscription Plan level)
     const hasSkinPerm = this.uiSettings?.permissions?.skinEnabled ?? false;
     const hasHairPerm = this.uiSettings?.permissions?.hairEnabled ?? false;
@@ -502,11 +533,11 @@ class DermaAIWizard {
   /* ---------- Session & submit ---------- */
 
   async startSession() {
-    console.log("Run::startSession")
+    // console.log("Run::startSession")
     // console.log("start session", this.state)
     this.state.timeline = [];
 
-    console.log("flow type::", this.state.activeFlow)
+    // console.log("flow type::", this.state.activeFlow)
     // this.state.activeFlow = "skinCare";
 
     if (!this.isFullPage) {
@@ -527,7 +558,7 @@ class DermaAIWizard {
     if (res === 'not-active') return;
 
     this.renderChatUI();
-    this.addBot("⏳ Preparing your personalized assessment...");
+    this.addBot({ text: "⏳ Preparing your personalized assessment..." });
 
     console.log("timeline:::", this.state.timeline)
     const payload = {
@@ -539,14 +570,21 @@ class DermaAIWizard {
     console.log("sucess::sexxions", data, error)
 
     if (error) {
-      this.addBot("❌ Unable to start session.");
+      this.addBot({ text: "❌ Unable to start session." });
       return;
     }
 
     this.state.sessionId = data.session_id;
     this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
-    this.addBot(this.flowConfig[this.state.activeFlow].welcome);
-    this.renderUI(data.ui);
+    this.addBot({ text: this.flowConfig[this.state.activeFlow].welcome });
+    
+    if (data.ui) {
+      this.addBot({
+        heading: data.ui.heading,
+        text: data.ui.intro_message
+      })
+      this.renderUI(data.ui);
+    }
   }
 
   async submitStep(stepId, responseValue) {
@@ -569,7 +607,13 @@ class DermaAIWizard {
     }
     this.state.isSubmitting = false;
 
-    if (data?.ui) this.renderUI(data.ui);
+    if (data?.ui) {
+      this.addBot({
+        heading: data?.ui?.heading || "",
+        text: data?.ui?.message || ""
+      })
+      this.renderUI(data?.ui);
+    }
   }
 
   /* ---------- UI engine: step type → renderer ---------- */
@@ -579,10 +623,6 @@ class DermaAIWizard {
 
     this.state.currentStep = ui.step_id;
 
-    if (ui.ui_type !== "ai_report") {
-      if (ui.heading) this.addBot(ui.heading);
-      if (ui.message) this.addBot(ui.message);
-    }
 
     const type = ui.ui_type;
     switch (type) {
@@ -693,7 +733,7 @@ class DermaAIWizard {
       root.querySelectorAll(".card-select-item").forEach((el) => {
         el.addEventListener("click", () => {
           const title = el.querySelector(".derma-card-title-choose_concern").textContent;
-          this.addUser(title);
+          this.addUser({ text: title });
 
           if (ui.step_id === "choose_concern") {
             this.state.activeFlow = el.dataset.id === "hair_assessment" ? "hairCare" : "skinCare";
@@ -726,7 +766,7 @@ class DermaAIWizard {
 
       document.querySelectorAll(".card-select-item").forEach((el) => {
         el.onclick = () => {
-          this.addUser(el.querySelector(".derma-card-title").textContent);
+          this.addUser({ text: el.querySelector(".derma-card-title").textContent });
           this.submitStep(ui.step_id, el.dataset.id);
         };
       });
@@ -744,7 +784,7 @@ class DermaAIWizard {
     this.addUI(html, (root) => {
       root.querySelectorAll(".pill-item").forEach((el) => {
         el.addEventListener("click", () => {
-          this.addUser(el.textContent);
+          this.addUser({ text: el.textContent });
           this.submitStep(ui.step_id, el.textContent);
         });
       });
@@ -762,7 +802,7 @@ class DermaAIWizard {
     this.addUI(html, (root) => {
       root.querySelectorAll(".btn-list .figma-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
-          this.addUser(btn.textContent);
+          this.addUser({ text: btn.textContent });
           this.submitStep(ui.step_id, btn.textContent);
         });
       });
@@ -774,11 +814,11 @@ class DermaAIWizard {
     const btnId = `multi-${this.sanitizeDomId(ui.step_id)}`;
 
     const html = `
-    <div class="goal-grid">
+    <div class="derma-ai-goal-grid">
       ${(ui.options || [])
         .map(
           (o) => `
-        <div class="goal-item" data-id="${this.escapeHtml(o.id)}">${this.escapeHtml(
+        <div class="derma-ai-goal-item" data-id="${this.escapeHtml(o.id)}">${this.escapeHtml(
             o.label
           )}</div>
       `
@@ -788,7 +828,7 @@ class DermaAIWizard {
     <button type="button" class="figma-btn primary" id="${btnId}">Continue</button>`;
 
     this.addUI(html, (root) => {
-      root.querySelectorAll(".goal-item").forEach((el) => {
+      root.querySelectorAll(".derma-ai-goal-item").forEach((el) => {
         el.addEventListener("click", () => {
           el.classList.toggle("active");
           if (selected.has(el.dataset.id)) selected.delete(el.dataset.id);
@@ -800,12 +840,13 @@ class DermaAIWizard {
       if (continueBtn) {
         continueBtn.addEventListener("click", () => {
           if (!selected.size) {
-            this.addBot("⚠ Please select at least one option.");
+            this.addBot({ text: "⚠ Please select at least one option." });
             return;
           }
           const payload = [...selected];
-          this.addUser(payload.join(", "));
-          this.addBot("⏳ Generating your personalized routine...");
+          const optionsLabels = ui.options.filter((opt) => payload.includes(opt?.id)).map((opt) => opt?.label)
+          this.addUser({ text: optionsLabels.join(", ") });
+          this.addBot({ text: "⏳ Generating your personalized routine..." });
           this.submitStep(ui.step_id, payload);
         });
       }
@@ -826,14 +867,14 @@ class DermaAIWizard {
       const btn = this.queryById(root, btnId);
       if (btn) {
         btn.addEventListener("click", () => {
-          this.addUser(ui.label || "Continue");
+          this.addUser({ text: ui.label || "Continue" });
           this.submitStep(ui.step_id, ui.value || "continue");
         });
       }
     });
   }
 
-  renderImageUpload(ui) {
+  renderImageUpload() {
     const inputId = `img-upload-${this.sanitizeDomId(this.state.sessionId || "session")}`;
 
     // const html = `<input type="file" id="${inputId}" accept="image/*" aria-label="Upload image" />`;
@@ -865,17 +906,26 @@ class DermaAIWizard {
         fd.append("image", file);
         fd.append("analysis_type", this.state.activeFlow);
 
-        this.addUser("📸 Photo uploaded");
-        this.addBot("⏳ Analyzing image...");
+        this.addUser({ text: "📸 Photo uploaded" });
+        this.addBot({ text: "⏳ Analyzing image..." });
 
         const { data, error } = await this.apiService.uploadImage(fd);
 
         if (error) {
           console.error(error);
           this.notifyError("❌ Image upload failed. Please try another photo.");
+          // Some time Failing Imgae uplod 
+          // Need to new Session id for retry upload , if you got not proper image with valid reason 
+          // this.renderImageUpload()
           return;
         }
-        this.renderUI(data.ui);
+        if (data?.ui) {
+          this.addBot({
+            heading: data?.ui?.heading || "",
+            text: data?.ui?.message || ""
+          })
+          this.renderUI(data.ui);
+        }
       });
     });
   }
@@ -918,7 +968,7 @@ class DermaAIWizard {
       const btn = root.querySelector("#analysis-continue");
       if (btn) {
         btn.addEventListener("click", () => {
-          this.addUser("Continue");
+          this.addUser({ text: "Continue" });
           this.submitStep(ui.step_id, "continue");
         });
       }
@@ -1006,7 +1056,7 @@ class DermaAIWizard {
       const nextBtn = this.queryById(root, nextBtnId);
       if (nextBtn) {
         nextBtn.addEventListener("click", () => {
-          this.addUser("Next AI Doctor’s Report");
+          this.addUser({ text: "Next AI Doctor’s Report" });
           this.submitStep(ui.step_id, "continue");
         });
       }
@@ -1075,10 +1125,8 @@ class DermaAIWizard {
     }
 
     if (id === "ai_assistant") {
-      this.addUser("AI Assistant");
-      this.addBot(
-        "Hello! I'm your Dermatics AI Skincare Assistant. How can I help you with your routine or skin analysis?"
-      );
+      this.addUser({ text: "AI Assistant" });
+      this.addBot({ text: "Hello! I'm your Dermatics AI Skincare Assistant. How can I help you with your routine or skin analysis?"});
     }
   }
 

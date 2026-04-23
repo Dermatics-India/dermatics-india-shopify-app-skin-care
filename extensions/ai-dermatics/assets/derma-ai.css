@@ -100,7 +100,7 @@
 /* -------------------------------
    Bot Bubble
 --------------------------------*/
-.bot-bubble {
+.derma-ai-bot-bubble {
   background: var(--derma-bg-light);
   padding: 16px 20px;
   border-radius: var(--derma-big-radius);
@@ -116,7 +116,7 @@
 /* -------------------------------
    User Bubble (Blue Figma Style)
 --------------------------------*/
-.user-bubble {
+.derma-ai-user-bubble {
   background: var(--derma-blue);
   padding: 12px 18px;
   border-radius: var(--derma-big-radius);
@@ -130,6 +130,16 @@
   align-items: center;
   gap: 12px;
   font-weight: 500;
+}
+
+.derma-ai-bubble-heading {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.derma-ai-bubble-text {
+  font-size: 16px;
 }
 
 .user-bubble .user-choice-img {
@@ -173,8 +183,11 @@
 /* ============================================================
    UI BLOCK WRAPPER (Cards, Buttons, etc.)
 ============================================================ */
-.chat-ui-block {
+.derma-ai-chat-ui-block {
   margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ============================================================
@@ -282,12 +295,12 @@
 /* ============================================================
    GOAL GRID (Multi-Select)
 ============================================================ */
-.goal-grid {
+.derma-ai-goal-grid {
   display: grid;
   gap: 14px;
 }
 
-.goal-item {
+.derma-ai-goal-item {
   padding: 16px;
   border-radius: var(--derma-radius);
   background: var(--derma-bg-light);
@@ -297,7 +310,7 @@
   font-size: 16px;
 }
 
-.goal-item.active {
+.derma-ai-goal-item.active {
   background: var(--derma-blue);
   color: #fff;
   border-color: var(--derma-blue);
@@ -659,8 +672,8 @@
   }
 
   /* Chat bubbles */
-  .bot-bubble,
-  .user-bubble {
+  .derma-ai-bot-bubble,
+  .derma-ai-user-bubble {
     max-width: 100%;
     font-size: 14px;
     padding: 14px 16px;

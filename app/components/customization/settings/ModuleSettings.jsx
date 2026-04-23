@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useCustomizeData } from "../../../hooks/useCustomizeData";
+import { getClampedNumber, onKeyDownNumField } from "~/utils";
 
 export function ModuleSettings({ data, onChange, onImageUpload, isImageUploading }) {
   const { t } = useTranslation();
@@ -8,12 +9,8 @@ export function ModuleSettings({ data, onChange, onImageUpload, isImageUploading
   const fileInputRef = useRef(null);
 
   const handleNumberChange = (field, value, min, max, section = "text") => {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed)) {
-      onChange([section, field], min);
-      return;
-    }
-    onChange([section, field], Math.max(min, Math.min(max, parsed)));
+    const val = getClampedNumber(value, min, max)
+    onChange([section, field], val);
   };
 
   const triggerFilePick = () => fileInputRef.current?.click();
@@ -90,30 +87,33 @@ export function ModuleSettings({ data, onChange, onImageUpload, isImageUploading
           </div>
         </div>
 
-        <s-text-field
+        <s-number-field
           label="Image Height"
           type="number"
           min="20"
           max="300"
           value={String(data?.image?.height ?? 50)}
+          onKeyDown={onKeyDownNumField}
           onInput={(e) => handleNumberChange("height", e.target.value, 0, 400, "image")}
           autocomplete="off"
         />
-        <s-text-field
+        <s-number-field
           label="Image Width"
           type="number"
           min="20"
           max="300"
           value={String(data?.image?.width ?? 50)}
+          onKeyDown={onKeyDownNumField}
           onInput={(e) => handleNumberChange("width", e.target.value, 0, 400, "image")}
           autocomplete="off"
         />
-        <s-text-field
+        <s-number-field
           label="Image Radius"
           type="number"
           min="0"
           max="100"
           value={String(data?.image?.radius ?? 15)}
+          onKeyDown={onKeyDownNumField}
           onInput={(e) => handleNumberChange("radius", e.target.value, 0, 100, "image")}
           autocomplete="off"
         />
@@ -134,12 +134,13 @@ export function ModuleSettings({ data, onChange, onImageUpload, isImageUploading
           value={data?.text?.textColor || "#333333"}
           onChange={(e) => onChange(["text", "textColor"], e.target.value)}
         />
-        <s-text-field
+        <s-number-field
           label="Text Size"
           type="number"
           min="10"
           max="48"
           value={String(data?.text?.fontSize ?? 14)}
+          onKeyDown={onKeyDownNumField}
           onInput={(e) => handleNumberChange("fontSize", e.target.value, 0, 48, "text")}
           autocomplete="off"
         />
