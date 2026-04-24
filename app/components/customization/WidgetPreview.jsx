@@ -32,6 +32,15 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
   const widgetStyle = getDynamicStyles(data, "widget");
   const positionStyles = getWidgetPositionStyles(data.widget.position);
 
+  const headerSubtitle =
+    data.drawer.header.subtitle ?? "Your personal beauty & wellness advisor";
+  const headerBrand = data.drawer.header.brand ?? "by Dermatics India";
+  const headerTitle =
+    data.drawer.header.title ||
+    (type === "skinCare"
+      ? t("Customization.settings.preview.headerSkin")
+      : t("Customization.settings.preview.headerHair"));
+
   return (
     <div className="widget-preview-container">
       <div className="mock-storefront">
@@ -44,14 +53,6 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
         className="live-widget-button"
         onClick={() => setIsDrawerOpen(!isDrawerOpen)}
         style={{ ...widgetStyle, ...positionStyles }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "translateY(-2px)";
-          e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.1)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-          e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1)";
-        }}
       >
         {data.widget.buttonText || "Analyze Skin"}
       </div>
@@ -75,24 +76,19 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
             fontSize: `${data.drawer.header.fontSize}px`,
           }}
         >
-          <span>
-            {type === "skinCare"
-              ? t("Customization.settings.preview.headerSkin")
-              : t("Customization.settings.preview.headerHair")}
-          </span>
+          <div className="drawer-header-text">
+            <div className="drawer-header-title">{headerTitle}</div>
+            {headerSubtitle && (
+              <div className="drawer-header-subtitle">{headerSubtitle}</div>
+            )}
+            {headerBrand && (
+              <div className="drawer-header-brand">{headerBrand}</div>
+            )}
+          </div>
           <button
+            type="button"
+            className="drawer-header-close"
             onClick={() => setIsDrawerOpen(false)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "inherit",
-              cursor: "pointer",
-              fontSize: "24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-            }}
           >
             ×
           </button>
@@ -117,15 +113,7 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
             </div>
           </div>
 
-          <div
-            style={{
-              alignSelf: "flex-start",
-              display: "grid",
-              gap: "12px",
-              width: "100%",
-              marginTop: "4px",
-            }}
-          >
+          <div className="module-list">
             {Object.keys(data.modules || {}).length > 0 &&
               Object.entries(data.modules)
                 .filter(([key, config]) => {
@@ -136,10 +124,7 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
                 .map(([id, config]) => (
                   <div
                     key={id}
-                    className="module-card"
-                    style={{
-                      border: `1px solid ${type === id ? "#2563eb" : "#e5e7eb"}`,
-                    }}
+                    className={`module-card${type === id ? " active" : ""}`}
                   >
                     <div
                       className="module-image-wrapper"
@@ -156,7 +141,7 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
                       />
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <div className="module-card-text">
                       <div
                         style={{
                           fontWeight: config.text.fontWeight,
@@ -172,9 +157,8 @@ export function WidgetPreview({ type, data, permissions, isDrawerOpen, setIsDraw
           </div>
 
           <div
-            className="chat-bubble"
+            className="chat-bubble chat-bubble-user"
             style={{
-              alignSelf: "flex-end",
               backgroundColor: data?.drawer?.bubble?.user?.bgColor || "#ececec",
               borderRadius: `${data.drawer.bubble.user.radius}px`,
             }}

@@ -64,6 +64,19 @@ function pickerValueToRange(str) {
   return { start: fromInputValue(start), end: fromInputValue(end) };
 }
 
+const PRESET_KEYS = ["today", "yesterday", "last7", "last15", "last30"];
+
+function matchPresetFromRange(range) {
+  if (!range?.start || !range?.end) return "custom";
+  const s = range.start.getTime();
+  const e = range.end.getTime();
+  for (const key of PRESET_KEYS) {
+    const p = getPresetRange(key);
+    if (p && p.start.getTime() === s && p.end.getTime() === e) return key;
+  }
+  return "custom";
+}
+
 function toViewValue(date) {
   const d = date || new Date();
   const pad = (n) => String(n).padStart(2, "0");
@@ -115,7 +128,7 @@ export function DateRangePicker({ defaultPreset = "last30", onChange }) {
   const handlePickerChange = (e) => {
     const next = pickerValueToRange(e.target.value);
     if (!next) return;
-    setSelectedPreset("custom");
+    setSelectedPreset(matchPresetFromRange(next));
     setDateRange(next);
   };
 

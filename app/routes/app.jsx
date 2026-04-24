@@ -11,8 +11,12 @@ import { getAppEmbedStatus } from "../lib/appEmbed.server";
 import { I18nProvider } from "../providers/I18nProvider";
 import { ShopProvider } from "../providers/ShopProvider";
 import appStyles from "../styles/app.css?url";
+import widgetPreviewStyles from "../styles/widget-preview.css?url";
 
-export const links = () => [{ rel: "stylesheet", href: appStyles }];
+export const links = () => [
+  { rel: "stylesheet", href: appStyles },
+  { rel: "stylesheet", href: widgetPreviewStyles },
+];
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);

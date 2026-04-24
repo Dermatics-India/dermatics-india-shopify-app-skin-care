@@ -311,7 +311,6 @@ class DermaAIWizard {
 
   createDrawer() {
     if (document.getElementById("derma-ai-drawer")) return;
-
     const config = this.uiSettings.drawer || {};
     const drawer = document.createElement("div");
     drawer.id = "derma-ai-drawer";
@@ -320,11 +319,20 @@ class DermaAIWizard {
     // Apply Main Drawer Background
     drawer.style.backgroundColor = config.bgColor || "#ffffff";
 
+    const headerCfg = config?.header || {};
+    const headerTitle = headerCfg?.title || headerCfg?.label || "AI Skin & Hair Care";
+    const headerSubtitle = headerCfg?.subtitle || "Your personal beauty & wellness advisor";
+    const headerBrand = headerCfg?.brand || "by Dermatics India";
+
     // Drawer header Ele
     drawer.innerHTML = `
       <div class="derma-ai-drawer-header" id="derma-drawer-header">
-        <span id="derma-ai-header-title">AI Skin & Hair Advisor</span>
-        <span class="wizard-close" style="color: ${config?.header?.textColor || "#fff"}" role="button" aria-label="Close">&times;</span>
+        <div class="derma-ai-header-text">
+          <div class="derma-ai-header-title" id="derma-ai-header-title">${this.escapeHtml(headerTitle)}</div>
+          ${headerSubtitle ? `<div class="derma-ai-header-subtitle">${this.escapeHtml(headerSubtitle)}</div>` : ""}
+          ${headerBrand ? `<div class="derma-ai-header-brand">${this.escapeHtml(headerBrand)}</div>` : ""}
+        </div>
+        <span class="wizard-close" role="button" aria-label="Close">&times;</span>
       </div>
       <div id="derma-ai-screen" class="derma-ai-chat-screen"></div>
       <form id="derma-ai-composer" class="derma-ai-composer" autocomplete="off">
