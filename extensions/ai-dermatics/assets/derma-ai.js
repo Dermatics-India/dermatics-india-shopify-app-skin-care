@@ -76,6 +76,9 @@ class DermaApiService {
       flowSubmit: `${this.baseUrl}/api/flow/submit`,
       imageUpload: `${this.baseUrl}/api/flow/upload-image`,
       settings: `${this.proxy}/widget-settings`,
+      customer: `${this.proxy}/customer`,
+      analysisStart: `${this.proxy}/analysis/start`,
+      analysisComplete: `${this.proxy}/analysis/complete`,
     };
 
     // Instantiate your existing ApiHandler
@@ -114,6 +117,21 @@ class DermaApiService {
       return { data: null, error: err.message };
     });
 }
+
+  async upsertCustomer(payload) {
+    return this.api.post(this.endpoints.customer, payload)
+      .catch((err) => ({ data: null, error: err.message }));
+  }
+
+  async recordAnalysisStart(payload) {
+    return this.api.post(this.endpoints.analysisStart, payload)
+      .catch((err) => ({ data: null, error: err.message }));
+  }
+
+  async recordAnalysisComplete(payload) {
+    return this.api.post(this.endpoints.analysisComplete, payload)
+      .catch((err) => ({ data: null, error: err.message }));
+  }
 }
 
 /**
@@ -139,6 +157,9 @@ class DermaAIWizard {
       activeFlow: "skinCare",
       isSubmitting: false,
       timeline: [],
+      customerId: null,
+      aiSessionId: null,
+      analysisCompleted: false,
     };
 
     this.uiSettings = {};
@@ -613,9 +634,11 @@ class DermaAIWizard {
     }
 
     this.state.sessionId = data.session_id;
+    this.state.analysisCompleted = false;
+    this._recordCustomerAndSession().catch((err) => console.warn("analytics", err));
     this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
     this.addBot({ text: this.flowConfig[this.state.activeFlow].welcome });
-    
+
     if (data.ui) {
       this.addBot({
         heading: data.ui.heading,
@@ -623,6 +646,38 @@ class DermaAIWizard {
       })
       this.renderUI(data.ui);
     }
+  }
+
+  async _recordCustomerAndSession() {
+    if (!this.customer?.id) return;
+    const customerRes = await this.apiService.upsertCustomer({
+      shopifyCustomerId: this.customer.id,
+      email: this.customer.email,
+      firstName: this.customer.firstName,
+      lastName: this.customer.lastName,
+    });
+    const customerId = customerRes?.data?.customerId;
+    if (!customerId) return;
+    this.state.customerId = customerId;
+
+    const sessionRes = await this.apiService.recordAnalysisStart({
+      customerId,
+      externalSessionId: this.state.sessionId,
+      flowType: this.flowConfig[this.state.activeFlow]?.flowType,
+    });
+    if (sessionRes?.data?.sessionId) {
+      this.state.aiSessionId = sessionRes.data.sessionId;
+    }
+  }
+
+  async _recordAnalysisCompleted() {
+    if (this.state.analysisCompleted) return;
+    this.state.analysisCompleted = true;
+    if (!this.state.aiSessionId && !this.state.sessionId) return;
+    await this.apiService.recordAnalysisComplete({
+      sessionId: this.state.aiSessionId || undefined,
+      externalSessionId: this.state.sessionId || undefined,
+    }).catch((err) => console.warn("analytics complete", err));
   }
 
   async submitStep(stepId, responseValue) {
@@ -1103,6 +1158,7 @@ class DermaAIWizard {
   }
 
   renderAIReport(ui) {
+    this._recordAnalysisCompleted();
     const hasPdf = !!ui.pdf_url;
     const bubbleConfig = this.uiSettings.drawer?.bubble;
 
@@ -1278,6 +1334,27 @@ class DermaAIWizard {
 
   /* ---------- Shopify cart ---------- */
 
+  // Stamps the current cart with `ai_dermatics_*` note_attributes so the
+  // orders/create webhook can attribute the purchase back to this session.
+  async _stampCartAttribution() {
+    const attributes = {};
+    if (this.state.sessionId) attributes.ai_dermatics_session = String(this.state.sessionId);
+    if (this.state.customerId) attributes.ai_dermatics_customer = String(this.state.customerId);
+    if (this.state.aiSessionId) attributes.ai_dermatics_ai_session = String(this.state.aiSessionId);
+    if (!Object.keys(attributes).length) return;
+
+    const cartRoot = window.Shopify?.routes?.root || "/";
+    try {
+      await fetch(`${cartRoot}cart/update.js`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attributes }),
+      });
+    } catch (e) {
+      console.warn("cart attribution", e);
+    }
+  }
+
   async addToCart(variantId) {
     if (this.state.isSubmitting || !variantId) return;
 
@@ -1290,6 +1367,8 @@ class DermaAIWizard {
         quantity: 1
       }]
     };
+
+    await this._stampCartAttribution();
 
     fetch(cartRoute, {
       method: 'POST',
@@ -1341,6 +1420,8 @@ class DermaAIWizard {
       window.alert("No products available to add");
       return;
     }
+
+    await this._stampCartAttribution();
 
     try {
       const res = await fetch("/cart/add.js", {

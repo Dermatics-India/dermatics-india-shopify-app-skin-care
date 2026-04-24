@@ -1,53 +1,79 @@
+import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { useTranslation } from "react-i18next";
 
 import { authenticate } from "../shopify.server";
+import { loadShopRecord } from "../lib/shopAuth.server";
+import { getAnalyticsMetrics } from "../lib/analytics.server";
 import { DateRangePicker } from "../components/common";
+import { formatCurrency } from "~/utils";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+  const { session } = await authenticate.admin(request);
+  const shop = await loadShopRecord(session);
+
+  const url = new URL(request.url);
+  const metrics = await getAnalyticsMetrics({
+    shopId: shop.id,
+    searchParams: url.searchParams,
+  });
+
+  return metrics;
 };
 
-const DUMMY_METRICS = [
-  { key: "totalAnalyses", value: "1,248", trend: "up" },
-  { key: "completionRate", value: "74.3%", trend: "up" },
-  { key: "avgDuration", value: "1m 42s", trend: "up" },
-  { key: "conversionRate", value: "12.6%", trend: "up" },
-  { key: "revenue", value: "$8,430", trend: "up" },
-  { key: "aov", value: "$67.50", trend: "up" },
-];
+function toInputValue(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function formatPercent(value) {
+  return `${(value * 100).toFixed(1)}%`;
+}
 
 export default function Analytics() {
   const { t } = useTranslation();
+  const { totals, range } = useLoaderData();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const metrics = [
+    { key: "totalAnalyses", value: totals.totalAnalyses.toLocaleString() },
+    { key: "completionRate", value: formatPercent(totals.completionRate) },
+    { key: "conversionRate", value: formatPercent(totals.conversionRate) },
+    { key: "revenue", value: formatCurrency(totals.revenue, totals.currency) },
+    { key: "aov", value: formatCurrency(totals.aov, totals.currency) },
+  ];
+
+  const handleRangeChange = ({ start, end }) => {
+    if (!start || !end) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("start", toInputValue(start));
+    next.set("end", toInputValue(end));
+    setSearchParams(next, { replace: true });
+  };
+
+  const defaultPreset = searchParams.get("start") ? "custom" : "last30";
 
   return (
     <s-page heading={t("analytics.title")}>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <s-text tone="subdued">{t("analytics.subtitle")}</s-text>
-          <DateRangePicker defaultPreset="last30" />
+          <DateRangePicker
+            defaultPreset={defaultPreset}
+            onChange={handleRangeChange}
+          />
         </div>
 
         <s-grid gridTemplateColumns="repeat(auto-fit, minmax(220px, 1fr))" gap="base">
-          {DUMMY_METRICS.map((metric) => (
+          {metrics.map((metric) => (
             <s-section key={metric.key}>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <s-text tone="subdued">{t(`analytics.${metric.key}.title`)}</s-text>
                 <span style={{ fontSize: "28px", fontWeight: 700 }}>{metric.value}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <span
-                    style={{
-                      color:
-                        metric.trend === "up"
-                          ? "var(--p-color-text-success, #007d48)"
-                          : "var(--p-color-text-critical, #cc0000)",
-                      fontSize: "12px",
-                    }}
-                  >
-                    {metric.trend === "up" ? "\u2191" : "\u2193"}
-                  </span>
-                  <s-text tone="subdued">{t(`analytics.${metric.key}.change`)}</s-text>
-                </div>
+                <s-text tone="subdued">
+                  {new Date(range.start).toLocaleDateString()} – {new Date(range.end).toLocaleDateString()}
+                </s-text>
               </div>
             </s-section>
           ))}

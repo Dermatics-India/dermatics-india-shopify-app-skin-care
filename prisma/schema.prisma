@@ -184,3 +184,64 @@ model Settings {
   updatedAt DateTime        @updatedAt
 }
 
+// -------------------- AI Customer + Analyses --------------------
+// One row per (shop, shopify customer). We store rolled-up counters
+// (scans, orders, spend) on the Customer doc so the admin list is a
+// single-query read; detail pages fetch AiSession / Orders on demand.
+
+model Customer {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopId            String   @db.ObjectId
+  shopifyCustomerId String
+  email             String?
+  firstName         String?
+  lastName          String?
+  totalScans        Int      @default(0)
+  completedScans    Int      @default(0)
+  orderCount        Int      @default(0)
+  totalSpend        Float    @default(0)
+  currency          String?
+  lastAnalysisAt    DateTime?
+  lastOrderAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([shopId, shopifyCustomerId])
+  @@index([shopId, lastAnalysisAt])
+}
+
+model AiSession {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  shopId            String    @db.ObjectId
+  customerId        String    @db.ObjectId
+  externalSessionId String?
+  flowType          String?
+  status            String    @default("started") // started | completed | abandoned
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([shopId, customerId, startedAt])
+  @@index([externalSessionId])
+}
+
+model Orders {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  shopId            String    @db.ObjectId
+  customerId        String    @db.ObjectId
+  shopifyOrderId    String
+  orderNumber       String?
+  externalSessionId String?
+  totalPrice        Float     @default(0)
+  currency          String?
+  lineItemCount     Int       @default(0)
+  fulfillmentStatus String?
+  financialStatus   String?
+  placedAt          DateTime
+  createdAt         DateTime  @default(now())
+
+  @@unique([shopId, shopifyOrderId])
+  @@index([shopId, customerId, placedAt])
+}
+

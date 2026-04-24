@@ -20,9 +20,16 @@ api_version = "2026-01"
   topics = [ "app_subscriptions/update" ]
   uri = "/webhooks/app_subscriptions/update"
 
+  # Requires Protected Customer Data approval in the Partner Dashboard.
+  # Re-enable this block (and the "read_orders" scope below) after approval.
+  # [[webhooks.subscriptions]]
+  # topics = [ "orders/create" ]
+  # uri = "/webhooks/orders/create"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,write_products,read_themes,write_themes"
+# Note: "read_orders" requires Protected Customer Data approval. Add it back once approved.
+scopes = "read_products,write_products,read_themes,write_themes,read_orders"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 

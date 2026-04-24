@@ -109,10 +109,10 @@ export const formatDateTime = (iso) => {
   });
 }
 
-export const formatCurrency = (value) => {
+export const formatCurrency = (value, currency = "USD") => {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
-    currency: "USD",
+    currency: currency || "USD",
   }).format(value);
 }
 
