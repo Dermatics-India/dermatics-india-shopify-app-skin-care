@@ -1,6 +1,13 @@
 
 {% if customer %}
   <script>
+    window.DERMA_AI_APP_ASSETS = {
+      reportIcon: "{{ 'report-icon.png' | asset_url }}",
+      downloadIcon: "{{ 'download-icon.png' | asset_url }}",
+      sendMsgIcon: "{{ 'send-msg-icon.png' | asset_url }}",
+      aiIcon: "{{  'ai-icon.png' | asset_url }}"
+
+    }
     window.DERMA_AI_CUSTOMER = {
       id: {{ customer.id | json }},
       email: {{ customer.email | json }},

@@ -131,6 +131,8 @@ class DermaAIWizard {
       config.flowConfig || {}
     );
 
+    this.assets = config.assets
+
     this.state = {
       sessionId: null,
       currentStep: null,
@@ -325,6 +327,15 @@ class DermaAIWizard {
         <span class="wizard-close" style="color: ${config?.header?.textColor || "#fff"}" role="button" aria-label="Close">&times;</span>
       </div>
       <div id="derma-ai-screen" class="derma-ai-chat-screen"></div>
+      <form id="derma-ai-composer" class="derma-ai-composer" autocomplete="off">
+        <input type="text" id="derma-ai-composer-input" class="derma-ai-composer-input" placeholder="Ask About your routine...." aria-label="Ask the AI assistant" />
+        <button type="submit" class="derma-ai-composer-send" aria-label="Send message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
     `;
     document.body.appendChild(drawer);
 
@@ -334,6 +345,16 @@ class DermaAIWizard {
 
     drawer.querySelector(".wizard-close").addEventListener("click", () => {
       drawer.classList.remove("open");
+    });
+
+    const composer = drawer.querySelector("#derma-ai-composer");
+    composer.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = composer.querySelector("#derma-ai-composer-input");
+      const text = (input.value || "").trim();
+      if (!text) return;
+      input.value = "";
+      this.sendAssistantMessage(text);
     });
   }
 
@@ -433,12 +454,20 @@ class DermaAIWizard {
         ${m.heading ? `<div class="derma-ai-bubble-heading">${m.heading}</div>` : ""}
         ${m.text ? `<div class="derma-ai-bubble-text">${m.text || ""}</div>` : ""} 
         `;
-        if (m.type === "bot")
-          return `<div class="chat-row bot">
+        if (m.type === "bot") {
+          const withAvatar = m.assistant ? " with-avatar" : "";
+          const avatar = m.assistant
+            ? `<div class="derma-ai-assistant-avatar" aria-hidden="true">
+                 <img src="${this.assets.aiIcon}" alt="report" />
+               </div>`
+            : "";
+          return `<div class="chat-row bot${withAvatar}">
+                    ${avatar}
                     <div class="derma-ai-bot-bubble">
                       ${content}
                     </div>
                   </div>`;
+        }
         if (m.type === "user")
           return `<div class="chat-row user">
                     <div class="derma-ai-user-bubble">
@@ -544,6 +573,7 @@ class DermaAIWizard {
       this.createDrawer();
       const drawer = document.getElementById("derma-ai-drawer");
       if (drawer) drawer.classList.add("open");
+      this.exitAssistantMode();
     } else {
       const screen = document.getElementById("derma-ai-screen");
       if (screen) screen.innerHTML = "";
@@ -606,12 +636,13 @@ class DermaAIWizard {
       return;
     }
     this.state.isSubmitting = false;
-
     if (data?.ui) {
-      this.addBot({
-        heading: data?.ui?.heading || "",
-        text: data?.ui?.message || ""
-      })
+      if (data?.ui?.ui_type !== "ai_report") {
+        this.addBot({
+          heading: data?.ui?.heading || "",
+          text: data?.ui?.message || ""
+        })
+      }
       this.renderUI(data?.ui);
     }
   }
@@ -1065,25 +1096,36 @@ class DermaAIWizard {
 
   renderAIReport(ui) {
     const hasPdf = !!ui.pdf_url;
+    const bubbleConfig = this.uiSettings.drawer?.bubble;
 
     const html = `
-    <div class="ai-report-wrapper">
-      <span class="step">Step 5: AI Doctor's Report</span>
-      <p>Here is a summary of your analysis and personalized plan.</p>
+    <div class="derma-ai-report-wrapper">
+      <div class="derma-ai-report-card"> 
+        <span class="derma-ai-report-header derma-ai-bubble-heading">${ui?.heading}</span>
+        <p class="derma-ai-report-desc derma-ai-bubble-text">${ui?.message}</p>
 
-      <div class="ai-report-card-main">
-        <div class="ai-report-card-top">
-          <div class="icon">🧑‍⚕️</div>
-          <div class="text">
-            <h4>AI Doctor's Report</h4>
-            <p><b>Personalized Skincare Plan</b></p>
-            <p class="date">Generated on: ${new Date().toLocaleDateString("en-IN")}</p>
+        <div class="derma-ai-report-card-main">
+          <div class="derma-ai-report-card-body">
+            <div class="derma-ai-report-header-group">
+              <div class="derma-ai-report-icon-circle">
+                <img src="${this.assets.reportIcon}" alt="report" />
+              </div>
+              <h4 class="derma-ai-reprot-card-main-heading ">${ui?.heading || 'Comprehensive Plan'}</h4>
+            </div>
+
+            <div class="derma-ai-report-details">
+              <p class="derma-ai-reprot-card-heading"><b>Personalized Plan</b></p>
+              <p class="derma-ai-date-text">Generated on: ${new Date().toLocaleDateString("en-IN")}</p>
+            </div>
           </div>
-        </div>
 
-        <button type="button" class="ai-report-download-btn" data-action="download-report">
-          ⬇ Download Report
-        </button>
+          <button type="button" class="derma-ai-report-download-btn" data-action="download-report">
+            <div class="derma-ai-download-pill-icon">
+              <img src="${this.assets.downloadIcon}" alt="download" />
+            </div>
+            <span>Download</span>
+          </button>
+        </div>
       </div>
 
       <div class="ai-report-actions">
@@ -1093,6 +1135,10 @@ class DermaAIWizard {
     </div>`;
 
     this.addUI(html, (root) => {
+      const reportCard = root.querySelector(".derma-ai-report-card");
+      if (reportCard && bubbleConfig) {
+        this._applyBubbleStyles(reportCard, bubbleConfig);
+      }
       const downloadBtn = root.querySelector("[data-action='download-report']");
       if (downloadBtn) {
         downloadBtn.addEventListener("click", () => {
@@ -1110,6 +1156,7 @@ class DermaAIWizard {
         });
       });
     });
+
   }
 
   /**
@@ -1126,8 +1173,77 @@ class DermaAIWizard {
 
     if (id === "ai_assistant") {
       this.addUser({ text: "AI Assistant" });
-      this.addBot({ text: "Hello! I'm your Dermatics AI Skincare Assistant. How can I help you with your routine or skin analysis?"});
+      this.enterAssistantMode();
+      this.addBot({
+        assistant: true,
+        heading: "AI Assistant",
+        text: this._getAssistantGreeting()
+      });
     }
+  }
+
+  _getAssistantGreeting() {
+    return this.state.activeFlow === "hairCare"
+      ? "Hello! I'm your Dermatics AI Haircare Assistant. How can I help you with your new routine or hair analysis."
+      : "Hello! I'm your Dermatics AI Skincare Assistant. How can I help you with your routine or skin analysis?";
+  }
+
+  enterAssistantMode() {
+    const drawer = document.getElementById("derma-ai-drawer");
+    if (!drawer) return;
+    drawer.classList.add("has-composer");
+    this.state.assistantMode = true;
+    this.updateHeaderTitle("AI Assistant");
+    setTimeout(() => {
+      drawer.querySelector("#derma-ai-composer-input")?.focus();
+    }, 60);
+  }
+
+  exitAssistantMode() {
+    const drawer = document.getElementById("derma-ai-drawer");
+    if (drawer) drawer.classList.remove("has-composer");
+    this.state.assistantMode = false;
+  }
+
+  async sendAssistantMessage(text) {
+    if (!text || this.state.isSubmitting) return;
+    this.addUser({ text });
+
+    const typingMarker = `__typing_${Date.now()}`;
+    this.state.timeline.push({
+      type: "ui",
+      marker: typingMarker,
+      html: `<div class="chat-row bot with-avatar">
+               <div class="derma-ai-assistant-avatar" aria-hidden="true">
+                  <img class="derma-ai-object-fit-contain" src="${this.assets.sendMsgIcon}" alt="ai-assistant-img" />
+               </div>
+               <div class="derma-ai-bot-bubble">
+                 <div class="derma-ai-typing"><span class="derma-ai-dot"></span><span class="derma-ai-dot"></span><span class="derma-ai-dot"></span></div>
+               </div>
+             </div>`
+    });
+    this.renderChatUI();
+
+    this.state.isSubmitting = true;
+    const reply = await this._requestAssistantReply(text);
+    this.state.isSubmitting = false;
+
+    this.state.timeline = this.state.timeline.filter((m) => m.marker !== typingMarker);
+    this.addBot({ assistant: true, text: reply });
+  }
+
+  async _requestAssistantReply(text) {
+    // TODO: replace with a real chat endpoint when the backend is ready, e.g.:
+    //   const { data, error } = await this.apiService.assistantChat({
+    //     sessionId: this.state.sessionId,
+    //     message: text,
+    //     flowType: this.state.activeFlow,
+    //   });
+    //   if (error || !data?.reply) return "I couldn't reach the assistant right now. Please try again.";
+    //   return data.reply;
+    await new Promise((r) => setTimeout(r, 600));
+    const preview = String(text).slice(0, 120);
+    return `Thanks for asking about "${this.escapeHtml(preview)}". The chat backend isn't wired up yet — connect \`_requestAssistantReply\` to your API to return real responses.`;
   }
 
   renderFinalActions(ui) {
@@ -1249,7 +1365,8 @@ if (typeof window !== "undefined" && !window.__DERMA_AI_BOOTED) {
   const dermaAIWizard = new DermaAIWizard({
     proxy: "/apps/derma-advisor",
     baseUrl: "https://app.dermatics.in",
-    customer: window.DERMA_AI_CUSTOMER
+    customer: window.DERMA_AI_CUSTOMER,
+    assets: window.DERMA_AI_APP_ASSETS
   });
 
   console.log("starting the APP-----")
