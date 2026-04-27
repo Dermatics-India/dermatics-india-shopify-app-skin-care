@@ -1,9 +1,10 @@
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { useTranslation } from "react-i18next";
 
 import { authenticate } from "../shopify.server";
 import { loadShopRecord } from "../lib/shopAuth.server";
 import prisma from "../db.server";
+import { DataTable, DateRangePicker, EmptyState } from "~/components/common";
 import { formatCurrency, formatDateTime, formatDate } from "~/utils";
 
 import customerStyle from "~/styles/customers.css?url";
@@ -22,15 +23,36 @@ export const loader = async ({ request, params }) => {
     );
   }
 
+  const url = new URL(request.url);
+  const startParam = url.searchParams.get("start");
+  const endParam = url.searchParams.get("end");
+
+  // Only apply the date filter when both bounds are present.
+  const range =
+    startParam && endParam
+      ? {
+          gte: new Date(`${startParam}T00:00:00`),
+          lte: new Date(`${endParam}T23:59:59.999`),
+        }
+      : undefined;
+
   const orders = await prisma.orders.findMany({
-    where: { shopId: shop.id, customerId: customer.id },
+    where: {
+      shopId: shop.id,
+      customerId: customer.id,
+      ...(range ? { placedAt: range } : {}),
+    },
     orderBy: { placedAt: "desc" },
     take: 50,
   });
 
   // Activity timeline is deferred — still render analyses + orders as events.
   const analyses = await prisma.aiSession.findMany({
-    where: { shopId: shop.id, customerId: customer.id },
+    where: {
+      shopId: shop.id,
+      customerId: customer.id,
+      ...(range ? { startedAt: range } : {}),
+    },
     orderBy: { startedAt: "desc" },
     take: 50,
   });
@@ -100,9 +122,27 @@ const eventTone = {
   signup: "subdued",
 };
 
+function toInputValue(date) {
+  if (!date) return "";
+  const d = date instanceof Date ? date : new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function CustomerDetail() {
   const { customer } = useLoaderData();
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const handleRangeChange = ({ start, end }) => {
+    if (!start || !end) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("start", toInputValue(start));
+    next.set("end", toInputValue(end));
+    setSearchParams(next, { replace: true });
+  };
+
+  const defaultPreset = searchParams.get("start") ? "custom" : "last30";
 
   const fulfillmentTone = (status) => {
     if (status === "Fulfilled") return "success";
@@ -111,56 +151,77 @@ export default function CustomerDetail() {
     return undefined;
   };
 
+  const orderColumns = [
+    {
+      key: "id",
+      header: "Order ID",
+      // sortable: true,
+      // sortValue: (o) => o.id,
+      render: (o) => <s-text fontWeight="medium">{o.id}</s-text>,
+    },
+    {
+      key: "date",
+      header: "Date",
+      // sortable: true,
+      // sortValue: (o) => o.date,
+      render: (o) => <s-text>{formatDate(o.date)}</s-text>,
+    },
+    {
+      key: "fulfillmentStatus",
+      header: "Fulfillment",
+      // sortable: true,
+      // sortValue: (o) => o.fulfillmentStatus,
+      render: (o) => (
+        <s-badge tone={fulfillmentTone(o.fulfillmentStatus)}>
+          {o.fulfillmentStatus}
+        </s-badge>
+      ),
+    },
+    {
+      key: "total",
+      header: "Total",
+      // sortable: true,
+      // sortValue: (o) => o.total,
+      render: (o) => <s-text>{formatCurrency(o.total, o.currency)}</s-text>,
+    },
+  ];
+
   return (
     <s-page heading={customer.name} inlineSize="large">
       <s-link slot="breadcrumb-actions" href="/app/customers">
         {t("cmn.back")}
       </s-link>
 
+      <s-stack
+        direction="inline"
+        justifyContent="end"
+        alignItems="center"
+        paddingBlock="small"
+      >
+        <DateRangePicker
+          defaultPreset={defaultPreset}
+          onChange={handleRangeChange}
+        />
+      </s-stack>
+
       <s-grid gridTemplateColumns="repeat(12, 1fr)" gap="base">
         <s-grid-item gridColumn="span 8" gridRow="span 1">
-          <s-section>
-            <s-stack direction="block" gap="base">
-              <s-stack direction="inline" justifyContent="space-between" alignItems="center">
-                <s-heading>Orders</s-heading>
-                <s-text tone="subdued">
-                  Last {customer.orders.length > 0 ? customer.orders.length : "0"}
-                </s-text>
-              </s-stack>
-              <s-table>
-                <s-table-header-row>
-                  <s-table-header>Order ID</s-table-header>
-                  <s-table-header>Date</s-table-header>
-                  <s-table-header>Fulfillment</s-table-header>
-                  <s-table-header>Total</s-table-header>
-                </s-table-header-row>
-                <s-table-body>
-                  {customer.orders.map((o) => (
-                    <s-table-row key={o.id}>
-                      <s-table-cell>
-                        <s-text fontWeight="medium">{o.id}</s-text>
-                      </s-table-cell>
-                      <s-table-cell>
-                        <s-text>{formatDate(o.date)}</s-text>
-                      </s-table-cell>
-                      <s-table-cell>
-                        <s-badge tone={fulfillmentTone(o.fulfillmentStatus)}>
-                          {o.fulfillmentStatus}
-                        </s-badge>
-                      </s-table-cell>
-                      <s-table-cell>
-                        <s-text>{formatCurrency(o.total, o.currency)}</s-text>
-                      </s-table-cell>
-                    </s-table-row>
-                  ))}
-                </s-table-body>
-              </s-table>
-              {customer.orders.length === 0 && (
-                <s-box padding="base">
-                  <s-text tone="subdued">No orders yet.</s-text>
-                </s-box>
-              )}
-            </s-stack>
+          <s-section padding="none">
+            <DataTable
+              columns={orderColumns}
+              rows={customer.orders}
+              rowKey={(o) => o.id}
+              searchableFields={["id"]}
+              searchPlaceholder={t("customers.searchPlaceholder")}
+              pageSize={10}
+              emptyState={
+                <EmptyState
+                  icon="order"
+                  heading={t("orders.empty.heading")}
+                  description={t("orders.empty.description")}
+                />
+              }
+            />
           </s-section>
         </s-grid-item>
 

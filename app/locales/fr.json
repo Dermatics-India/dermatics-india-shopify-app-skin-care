@@ -31,7 +31,15 @@
       "apply": "Apply",
       "cancel": "Cancel"
     },
-    "back": "Back"
+    "back": "Back",
+    "dataTable": {
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search...",
+      "empty": "No data to show.",
+      "previous": "Previous",
+      "next": "Next",
+      "rangeOf": "From {{start}} to {{end}} of {{total}}"
+    }
   },
   "NavigationMenu": {
     "setupGuide": "Setup Guide",
@@ -233,6 +241,18 @@
       "scans": "Total Scans",
       "orders": "Orders",
       "totalSpend": "Total Spend"
+    },
+    "empty": {
+      "heading": "No customers yet",
+      "description": "Customers who run an AI skin or hair analysis from your storefront will appear here."
+    },
+    "searchLabel": "Search customers",
+    "searchPlaceholder": "Search by name or email"
+  },
+  "orders": {
+    "empty": {
+      "heading": "No orders yet",
+      "description": "Orders this customer places via the AI assistant will appear here."
     }
   }
 }

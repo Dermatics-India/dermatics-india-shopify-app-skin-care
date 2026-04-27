@@ -372,3 +372,10 @@ npm run dev / deploy
 <!-- --- Step must follow into the pertner ---- -->
 - Enable App to Public distribution to list on shopify app store
 - Enable customer permission to access read orders of customer (Partner Dashboard → Distribution → App setup → Protected customer data access → request access for orders level)
+
+
+
+<!-- Support Agent  -->
+CRISP_WEBSITE_ID: Settings/Workspace settings/Setup & Integration
+
+
