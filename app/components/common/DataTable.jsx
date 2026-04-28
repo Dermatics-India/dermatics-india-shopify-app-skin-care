@@ -46,6 +46,7 @@ export function DataTable({
   rows,
   rowKey,
   onRowClick,
+  loading,
   pageSize: pageSizeProp = 20,
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   page,
@@ -224,7 +225,7 @@ export function DataTable({
           })}
         </s-table-header-row>
         <s-table-body>
-          {visibleRows.map((row, i) => (
+          {!loading && visibleRows.map((row, i) => (
             <s-table-row
               key={rowKey(row, i)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
@@ -240,13 +241,22 @@ export function DataTable({
         </s-table-body>
       </s-table>
 
-      {visibleRows.length === 0 && (
+      {loading ? (
+        <s-stack
+          direction="block"
+          alignItems="center"
+          justifyContent="center"
+          padding="large-200"
+        >
+          <s-spinner accessibilityLabel={t("cmn.loading")} />
+        </s-stack>
+      ) : visibleRows.length === 0 ? (
         <s-box padding="base">
           {emptyState || (
             <s-text tone="subdued">{t("cmn.dataTable.empty")}</s-text>
           )}
         </s-box>
-      )}
+      ) : null}
 
       {(paginationVisible && total > 0) && (
         <s-stack

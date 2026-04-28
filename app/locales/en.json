@@ -247,7 +247,29 @@
       "description": "Customers who run an AI skin or hair analysis from your storefront will appear here."
     },
     "searchLabel": "Search customers",
-    "searchPlaceholder": "Search by name or email"
+    "searchPlaceholder": "Search by name or email",
+    "detail": {
+      "orders": {
+        "searchPlaceholder": "Search by order ID",
+        "empty": {
+          "heading": "No orders yet",
+          "description": "Orders this customer places via the AI assistant will appear here."
+        }
+      },
+      "orderColumns": {
+        "id": "Order ID",
+        "date": "Date",
+        "fulfillment": "Fulfillment",
+        "total": "Total"
+      },
+      "activity": {
+        "heading": "Activity",
+        "count": "{{loaded}} of {{total}}",
+        "empty": "No activity yet.",
+        "loadMore": "Load more",
+        "loading": "Loading..."
+      }
+    }
   },
   "orders": {
     "empty": {

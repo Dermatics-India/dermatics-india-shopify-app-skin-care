@@ -1,10 +1,10 @@
-import { useLoaderData, useNavigate, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useNavigate, useNavigation, useSearchParams } from "@remix-run/react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { useTranslation } from "react-i18next";
 
-import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 import { loadShopRecord } from "../lib/shopAuth.server";
+import { getCustomerList } from "../lib/customer.server";
 
 // Components
 import { DataTable, EmptyState, DateRangePicker } from "~/components/common";
@@ -15,42 +15,8 @@ import { formatCurrency, formatDate } from "~/utils";
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const shop = await loadShopRecord(session);
-
   const url = new URL(request.url);
-  const startParam = url.searchParams.get("start");
-  const endParam = url.searchParams.get("end");
-
-  // Only filter when both bounds are present — empty URL = show every customer.
-  const lastAnalysisFilter =
-    startParam && endParam
-      ? {
-        gte: new Date(`${startParam}T00:00:00`),
-        lte: new Date(`${endParam}T23:59:59.999`),
-      }
-      : undefined;
-
-  const rows = await prisma.customer.findMany({
-    where: {
-      shopId: shop.id,
-      ...(lastAnalysisFilter ? { lastAnalysisAt: lastAnalysisFilter } : {}),
-    },
-    orderBy: { lastAnalysisAt: "desc" },
-    take: 200,
-  });
-
-  const customers = rows.map((c) => ({
-    id: c.id,
-    shopifyCustomerId: c.shopifyCustomerId,
-    name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email || "Customer",
-    email: c.email || "",
-    lastAnalysisDate: c.lastAnalysisAt ? c.lastAnalysisAt.toISOString() : null,
-    engagement: c.totalScans,
-    orders: c.orderCount,
-    lifetimeValue: c.totalSpend,
-    currency: c.currency || "USD",
-  }));
-
-  return { customers };
+  return getCustomerList({ shopId: shop.id, searchParams: url.searchParams });
 };
 
 function toInputValue(date) {
@@ -64,8 +30,11 @@ export default function CustomersIndex() {
   const { t } = useTranslation();
   const { customers } = useLoaderData();
   const navigate = useNavigate();
+  const navigation = useNavigation();
   const shopify = useAppBridge();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const isLoading = navigation.state === "loading";
 
   const shopDomain = shopify?.config?.shop;
   const buildAdminUrl = (shopifyCustomerId) =>
@@ -147,6 +116,7 @@ export default function CustomersIndex() {
           columns={columns}
           rows={customers}
           rowKey={(c) => c.id}
+          loading={isLoading}
           onRowClick={(c) => navigate(`/app/customers/${c.id}`)}
           pageSize={20}
           searchableFields={["name", "email"]}

@@ -619,14 +619,14 @@ class DermaAIWizard {
     this.renderChatUI();
     this.addBot({ text: "⏳ Preparing your personalized assessment..." });
 
-    console.log("timeline:::", this.state.timeline)
+    // console.log("timeline:::", this.state.timeline)
     const payload = {
       platform: "web",
       flowType: this.flowConfig.skinCare.flowType, // Sent dynamically (skin_flow or hair_flow)
       // customer: this.customer
     }
     const { data, error } = await this.apiService.startSession(payload)
-    console.log("sucess::sexxions", data, error)
+    // console.log("sucess::sexxions", data, error)
 
     if (error) {
       this.addBot({ text: "❌ Unable to start session." });

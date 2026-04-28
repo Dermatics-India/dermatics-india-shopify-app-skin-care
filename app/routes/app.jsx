@@ -49,6 +49,7 @@ export const loader = async ({ request }) => {
 function AppShell() {
   const { t } = useTranslation();
   const { shopInfo, crispId } = useLoaderData();
+
   useEffect(() => {
     // 1. Create a global Crisp object
     window.$crisp = [];
@@ -76,11 +77,9 @@ function AppShell() {
     // Syntax: $crisp.push(["set", "session:data", [[ [key, value], [key, value] ]]])
 
     // window.$crisp.push(["set", "session:data", [[
-    //   ["plan_name", "SkinCare"],
-    //   ["total_scans", 145],
-    //   ["is_trial", false],
-    //   ["last_analysis", "2026-04-20"],
-    //   ["shopify_domain", "mystore.myshopify.com"]
+    //   ["plan_name", shopData.subscription.planName],
+    //   ["total_scans", shopData.usage.count],
+    //   ["is_trial", !shopData.subscription.trialUsed],
     // ]]]);
 
   }, []);

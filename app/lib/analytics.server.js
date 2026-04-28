@@ -1,20 +1,11 @@
 import prisma from "../db.server";
-
-function rangeFromSearchParams(searchParams) {
-  const end = searchParams.get("end");
-  const start = searchParams.get("start");
-  const endDate = end ? new Date(`${end}T23:59:59.999`) : new Date();
-  const startDate = start
-    ? new Date(`${start}T00:00:00`)
-    : new Date(endDate.getTime() - 29 * 24 * 60 * 60 * 1000);
-  return { startDate, endDate };
-}
+import { rangeFromSearchParams } from "./serverHelper";
 
 // Rolls up the numbers shown on the Analytics dashboard for a given
 // (shop, [start, end]) window. All aggregates are computed in a single
 // round-trip by kicking off the Prisma queries in parallel.
 export async function getAnalyticsMetrics({ shopId, searchParams }) {
-  const { startDate, endDate } = rangeFromSearchParams(searchParams);
+  const range = rangeFromSearchParams(searchParams);
 
   const [
     startedCount,
@@ -24,20 +15,20 @@ export async function getAnalyticsMetrics({ shopId, searchParams }) {
     prisma.aiSession.count({
       where: {
         shopId,
-        startedAt: { gte: startDate, lte: endDate },
+        ...(range ? { startedAt: range } : {}),
       },
     }),
     prisma.aiSession.count({
       where: {
         shopId,
         status: "completed",
-        completedAt: { gte: startDate, lte: endDate },
+        ...(range ? { completedAt: range } : {}),
       },
     }),
     prisma.orders.findMany({
       where: {
         shopId,
-        placedAt: { gte: startDate, lte: endDate },
+        ...(range ? { placedAt: range } : {}),
       },
       select: { totalPrice: true, currency: true },
     }),
@@ -52,8 +43,8 @@ export async function getAnalyticsMetrics({ shopId, searchParams }) {
 
   return {
     range: {
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
+      start: range?.gte?.toISOString(),
+      end: range?.lte?.toISOString(),
     },
     totals: {
       totalAnalyses: startedCount,

@@ -1,3 +1,11 @@
+.customer-timeline-scroll {
+    max-block-size: 480px;
+    overflow-y: auto;
+    /* Reserve scrollbar gutter so the timeline doesn't shift when it appears. */
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+}
+
 .customer-timeline {
     display: flex;
     flex-direction: column;

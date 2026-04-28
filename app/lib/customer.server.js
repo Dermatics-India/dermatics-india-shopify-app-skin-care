@@ -1,25 +1,172 @@
 import prisma from "../db.server";
+import { getCustomerActivity } from "./activity.server";
 
-function normalizeShopifyCustomerId(value) {
-  if (value == null) return null;
-  if (typeof value === "string" && value.startsWith("gid://")) {
-    const tail = value.split("/").pop();
-    return tail || null;
-  }
-  return String(value);
+import { normalizeShopifyCustomerId, requireShop, rangeFromSearchParams } from "./serverHelper";
+
+const DETAIL_ORDERS_PAGE_SIZE = 10;
+const DETAIL_ACTIVITY_PAGE_SIZE = 15;
+
+function fulfillmentLabel(status) {
+  if (status === "fulfilled") return "Fulfilled";
+  if (status === "partial") return "Partial";
+  return "Unfulfilled";
 }
 
-async function requireShop(shopDomain) {
-  if (!shopDomain) {
-    return { error: { status: 400, body: { success: false, message: "Shop domain is required" } } };
+function formatCustomer(customer) {
+  return {
+    id: customer.id,
+    name:
+      [customer.firstName, customer.lastName].filter(Boolean).join(" ") ||
+      customer.email ||
+      "Customer",
+    email: customer.email || "",
+    shopifyCustomerId: customer.shopifyCustomerId,
+    currency: customer.currency || "USD",
+  };
+}
+
+function formatOrder(order, customerCurrency) {
+  return {
+    id: order.orderNumber || `#${order.shopifyOrderId}`,
+    date: order.placedAt.toISOString(),
+    fulfillmentStatus: fulfillmentLabel(order.fulfillmentStatus),
+    total: order.totalPrice,
+    currency: order.currency || customerCurrency || "USD",
+  };
+}
+
+/**
+ * Cursor-based orders feed for a single customer. The cursor is the ISO
+ * timestamp of the last order returned; subsequent calls fetch orders
+ * strictly older than the cursor. Mirrors the shape of `getCustomerActivity`.
+ */
+export async function getCustomerOrders({
+  shopId,
+  customerId,
+  range,
+  page = 1,
+  perPage = 25,
+  defaultCurrency,
+}) {
+  let currency = defaultCurrency;
+  if (!currency) {
+    const c = await prisma.customer.findFirst({
+      where: { id: customerId, shopId },
+      select: { currency: true },
+    });
+    currency = c?.currency || "USD";
   }
-  const shop = await prisma.shop.findUnique({
-    where: { shop: String(shopDomain).toLowerCase().trim() },
+
+  const where = {
+    shopId,
+    customerId,
+    ...(range ? { placedAt: range } : {}),
+  };
+
+  const currentPage = Math.max(1, page);
+  const skip = (currentPage - 1) * perPage;
+
+  const [rows, totalCount] = await Promise.all([
+    prisma.orders.findMany({
+      where,
+      orderBy: { placedAt: "desc" },
+      skip,
+      take: perPage,
+    }),
+    prisma.orders.count({ where }),
+  ]);
+
+  const items = rows.map((o) => formatOrder(o, currency));
+
+  return {
+    items,
+    pagination: {
+      hasNext: skip + perPage < totalCount,
+      hasPrev: currentPage > 1,
+      totalCount,
+      perPage,
+      currentPage,
+    },
+  };
+}
+
+export async function getCustomerList({ shopId, searchParams }) {
+  const range = rangeFromSearchParams(searchParams);
+
+  const rows = await prisma.customer.findMany({
+    where: {
+      shopId,
+      ...(range ? { lastAnalysisAt: range } : {}),
+    },
+    orderBy: { lastAnalysisAt: "desc" },
+    take: 200,
   });
-  if (!shop) {
-    return { error: { status: 404, body: { success: false, message: "Shop not found" } } };
+
+  const customers = rows.map((c) => ({
+    id: c.id,
+    shopifyCustomerId: c.shopifyCustomerId,
+    name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email || "Customer",
+    email: c.email || "",
+    lastAnalysisDate: c.lastAnalysisAt ? c.lastAnalysisAt.toISOString() : null,
+    engagement: c.totalScans,
+    orders: c.orderCount,
+    lifetimeValue: c.totalSpend,
+    currency: c.currency || "USD",
+  }));
+
+  return { customers };
+}
+
+/**
+ * Loads everything the customer detail page needs in one shot:
+ *  - The customer record (404 → throws a Response).
+ *  - The first orders page, optionally filtered by date range.
+ *  - The first activity page (orders + analyses merged, cursor-based).
+ *
+ * Throws a Response.json 404 when the customer is not found so loaders can
+ * just `return await getCustomerDetail(...)` and let Remix surface the
+ * status code.
+ */
+export async function getCustomerDetail({ shopId, customerId, searchParams }) {
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, shopId },
+  });
+  if (!customer) {
+    throw Response.json(
+      { success: false, message: "Customer not found" },
+      { status: 404 },
+    );
   }
-  return { shop };
+
+  const range = rangeFromSearchParams(searchParams);
+
+  const [orders, activity] = await Promise.all([
+    getCustomerOrders({
+      shopId,
+      customerId: customer.id,
+      range,
+      perPage: DETAIL_ORDERS_PAGE_SIZE,
+      defaultCurrency: customer.currency || "USD",
+    }),
+    getCustomerActivity({
+      shopId,
+      customerId: customer.id,
+      perPage: DETAIL_ACTIVITY_PAGE_SIZE,
+      range,
+    }),
+  ]);
+
+  return {
+    customer: {
+      ...formatCustomer(customer),
+      orders: orders.items,
+    },
+    ordersPagination: orders.pagination,
+    activity: {
+      items: activity.items,
+      pagination: activity.pagination,
+    },
+  };
 }
 
 export async function upsertCustomer({ shopDomain, payload }) {

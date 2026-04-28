@@ -1,107 +1,38 @@
-import { useLoaderData, useSearchParams } from "@remix-run/react";
+import { useEffect, useRef, useState } from "react";
+import {
+  useFetcher,
+  useLoaderData,
+  useNavigation,
+  useSearchParams,
+} from "@remix-run/react";
 import { useTranslation } from "react-i18next";
 
+// servers 
 import { authenticate } from "../shopify.server";
 import { loadShopRecord } from "../lib/shopAuth.server";
-import prisma from "../db.server";
+import { getCustomerDetail } from "../lib/customer.server";
+
+// components 
 import { DataTable, DateRangePicker, EmptyState } from "~/components/common";
+
+// utils 
 import { formatCurrency, formatDateTime, formatDate } from "~/utils";
 
+// css 
 import customerStyle from "~/styles/customers.css?url";
+
+const ACTIVITY_PER_PAGE = 15;
 
 export const loader = async ({ request, params }) => {
   const { session } = await authenticate.admin(request);
   const shop = await loadShopRecord(session);
 
-  const customer = await prisma.customer.findFirst({
-    where: { id: params.id, shopId: shop.id },
-  });
-  if (!customer) {
-    throw Response.json(
-      { success: false, message: "Customer not found" },
-      { status: 404 },
-    );
-  }
-
   const url = new URL(request.url);
-  const startParam = url.searchParams.get("start");
-  const endParam = url.searchParams.get("end");
-
-  // Only apply the date filter when both bounds are present.
-  const range =
-    startParam && endParam
-      ? {
-          gte: new Date(`${startParam}T00:00:00`),
-          lte: new Date(`${endParam}T23:59:59.999`),
-        }
-      : undefined;
-
-  const orders = await prisma.orders.findMany({
-    where: {
-      shopId: shop.id,
-      customerId: customer.id,
-      ...(range ? { placedAt: range } : {}),
-    },
-    orderBy: { placedAt: "desc" },
-    take: 50,
+  return getCustomerDetail({
+    shopId: shop.id,
+    customerId: params.id,
+    searchParams: url.searchParams,
   });
-
-  // Activity timeline is deferred — still render analyses + orders as events.
-  const analyses = await prisma.aiSession.findMany({
-    where: {
-      shopId: shop.id,
-      customerId: customer.id,
-      ...(range ? { startedAt: range } : {}),
-    },
-    orderBy: { startedAt: "desc" },
-    take: 50,
-  });
-
-  const timeline = [
-    ...analyses.map((a) => ({
-      id: `a-${a.id}`,
-      type: "analysis",
-      title:
-        a.status === "completed"
-          ? "Skin Analysis Completed"
-          : "Skin Analysis Started",
-      description: a.flowType ? `Flow: ${a.flowType}` : "",
-      timestamp: (a.completedAt || a.startedAt).toISOString(),
-    })),
-    ...orders.map((o) => ({
-      id: `o-${o.id}`,
-      type: "order",
-      title: `Order ${o.orderNumber || `#${o.shopifyOrderId}`} placed`,
-      description: `${o.lineItemCount} item(s)`,
-      timestamp: o.placedAt.toISOString(),
-    })),
-  ].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
-
-  return {
-    customer: {
-      id: customer.id,
-      name:
-        [customer.firstName, customer.lastName].filter(Boolean).join(" ") ||
-        customer.email ||
-        "Customer",
-      email: customer.email || "",
-      shopifyCustomerId: customer.shopifyCustomerId,
-      currency: customer.currency || "USD",
-      orders: orders.map((o) => ({
-        id: o.orderNumber || `#${o.shopifyOrderId}`,
-        date: o.placedAt.toISOString(),
-        fulfillmentStatus:
-          o.fulfillmentStatus === "fulfilled"
-            ? "Fulfilled"
-            : o.fulfillmentStatus === "partial"
-              ? "Partial"
-              : "Unfulfilled",
-        total: o.totalPrice,
-        currency: o.currency || customer.currency || "USD",
-      })),
-      timeline,
-    },
-  };
 };
 
 export const links = () => [
@@ -130,9 +61,82 @@ function toInputValue(date) {
 }
 
 export default function CustomerDetail() {
-  const { customer } = useLoaderData();
+  const {
+    customer,
+    ordersPagination: initialOrdersPagination,
+    activity: initialActivity,
+  } = useLoaderData();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigation = useNavigation();
+  const isReloadingPage = navigation.state === "loading";
+
+  // ── Orders state ─────────────────────────────────────────────────────────
+  const [ordersItems, setOrdersItems] = useState(customer.orders);
+  const [ordersPagination, setOrdersPagination] = useState(initialOrdersPagination);
+  const lastOrdersRef = useRef(initialOrdersPagination);
+
+  useEffect(() => {
+    if (lastOrdersRef.current !== initialOrdersPagination) {
+      lastOrdersRef.current = initialOrdersPagination;
+      setOrdersItems(customer.orders);
+      setOrdersPagination(initialOrdersPagination);
+    }
+  }, [initialOrdersPagination, customer.orders]);
+
+  // ── Activity state ────────────────────────────────────────────────────────
+  const [activityItems, setActivityItems] = useState(initialActivity.items);
+  const [activityPagination, setActivityPagination] = useState(initialActivity.pagination);
+  const lastActivityRef = useRef(initialActivity);
+
+  useEffect(() => {
+    if (lastActivityRef.current !== initialActivity) {
+      lastActivityRef.current = initialActivity;
+      setActivityItems(initialActivity.items);
+      setActivityPagination(initialActivity.pagination);
+    }
+  }, [initialActivity]);
+
+  // ── Fetchers ──────────────────────────────────────────────────────────────
+  const ordersFetcher = useFetcher({ key: "customer-orders" });
+  const activityFetcher = useFetcher({ key: "customer-activity" });
+
+  // Independent loading flags — each section shows its own spinner.
+  const isLoadingOrders = ordersFetcher.state !== "idle" || isReloadingPage;
+  const isLoadingActivity = activityFetcher.state !== "idle" || isReloadingPage;
+
+  useEffect(() => {
+    if (!ordersFetcher.data) return;
+    setOrdersItems(ordersFetcher.data.items);
+    setOrdersPagination(ordersFetcher.data.pagination);
+  }, [ordersFetcher.data]);
+
+  useEffect(() => {
+    if (!activityFetcher.data) return;
+    setActivityItems((prev) => [...prev, ...activityFetcher.data.items]);
+    setActivityPagination(activityFetcher.data.pagination);
+  }, [activityFetcher.data]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleOrdersPageChange = (page) => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("perPage", String(ordersPagination.perPage));
+    if (searchParams.get("start")) params.set("start", searchParams.get("start"));
+    if (searchParams.get("end")) params.set("end", searchParams.get("end"));
+    ordersFetcher.load(`/api/customer/${customer.id}/orders?${params.toString()}`);
+  };
+
+  const handleLoadMoreActivity = () => {
+    if (!activityPagination?.hasNext || activityFetcher.state !== "idle") return;
+    const nextPage = (activityPagination.currentPage ?? 1) + 1;
+    const params = new URLSearchParams();
+    params.set("page", String(nextPage));
+    params.set("perPage", String(ACTIVITY_PER_PAGE));
+    if (searchParams.get("start")) params.set("start", searchParams.get("start"));
+    if (searchParams.get("end")) params.set("end", searchParams.get("end"));
+    activityFetcher.load(`/api/customer/${customer.id}/activity?${params.toString()}`);
+  };
 
   const handleRangeChange = ({ start, end }) => {
     if (!start || !end) return;
@@ -154,23 +158,17 @@ export default function CustomerDetail() {
   const orderColumns = [
     {
       key: "id",
-      header: "Order ID",
-      // sortable: true,
-      // sortValue: (o) => o.id,
+      header: t("customers.detail.orderColumns.id"),
       render: (o) => <s-text fontWeight="medium">{o.id}</s-text>,
     },
     {
       key: "date",
-      header: "Date",
-      // sortable: true,
-      // sortValue: (o) => o.date,
+      header: t("customers.detail.orderColumns.date"),
       render: (o) => <s-text>{formatDate(o.date)}</s-text>,
     },
     {
       key: "fulfillmentStatus",
-      header: "Fulfillment",
-      // sortable: true,
-      // sortValue: (o) => o.fulfillmentStatus,
+      header: t("customers.detail.orderColumns.fulfillment"),
       render: (o) => (
         <s-badge tone={fulfillmentTone(o.fulfillmentStatus)}>
           {o.fulfillmentStatus}
@@ -179,9 +177,7 @@ export default function CustomerDetail() {
     },
     {
       key: "total",
-      header: "Total",
-      // sortable: true,
-      // sortValue: (o) => o.total,
+      header: t("customers.detail.orderColumns.total"),
       render: (o) => <s-text>{formatCurrency(o.total, o.currency)}</s-text>,
     },
   ];
@@ -209,16 +205,21 @@ export default function CustomerDetail() {
           <s-section padding="none">
             <DataTable
               columns={orderColumns}
-              rows={customer.orders}
+              rows={ordersItems}
               rowKey={(o) => o.id}
+              loading={isLoadingOrders}
               searchableFields={["id"]}
-              searchPlaceholder={t("customers.searchPlaceholder")}
-              pageSize={10}
+              searchPlaceholder={t("customers.detail.orders.searchPlaceholder")}
+              pageSize={ordersPagination.perPage}
+              pageSizeOptions={[ordersPagination.perPage]}
+              page={ordersPagination.currentPage}
+              totalCount={ordersPagination.totalCount}
+              onPageChange={handleOrdersPageChange}
               emptyState={
                 <EmptyState
                   icon="order"
-                  heading={t("orders.empty.heading")}
-                  description={t("orders.empty.description")}
+                  heading={t("customers.detail.orders.empty.heading")}
+                  description={t("customers.detail.orders.empty.description")}
                 />
               }
             />
@@ -228,32 +229,76 @@ export default function CustomerDetail() {
         <s-grid-item gridColumn="span 4" gridRow="span 2">
           <s-section>
             <s-stack direction="block" gap="base">
-              <s-heading>Activity</s-heading>
-              <div className="customer-timeline">
-                {customer.timeline.length === 0 && (
-                  <s-text tone="subdued">No activity yet.</s-text>
+              <s-stack
+                direction="inline"
+                justifyContent="space-between"
+                alignItems="center"
+                gap="small-200"
+              >
+                <s-heading>{t("customers.detail.activity.heading")}</s-heading>
+                {activityPagination?.totalCount > 0 && (
+                  <s-text tone="subdued">
+                    {t("customers.detail.activity.count", {
+                      loaded: activityItems.length,
+                      total: activityPagination.totalCount,
+                    })}
+                  </s-text>
                 )}
-                {customer.timeline.map((ev, i) => (
-                  <div className="timeline-entry" key={ev.id}>
-                    <div className="timeline-marker">
-                      <s-icon
-                        type={eventIcon[ev.type] || "clock"}
-                        tone={eventTone[ev.type] || "subdued"}
-                      />
-                      {i < customer.timeline.length - 1 && (
-                        <span className="timeline-line" />
-                      )}
-                    </div>
-                    <div className="timeline-content">
-                      <s-text tone="subdued">{formatDateTime(ev.timestamp)}</s-text>
-                      <s-text fontWeight="medium">{ev.title}</s-text>
-                      {ev.description && (
-                        <s-text tone="subdued">{ev.description}</s-text>
-                      )}
-                    </div>
+              </s-stack>
+
+              {isLoadingActivity ? (
+                <s-stack
+                  direction="block"
+                  alignItems="center"
+                  justifyContent="center"
+                  padding="large-200"
+                >
+                  <s-spinner accessibilityLabel={t("cmn.loading")} />
+                </s-stack>
+              ) : activityItems.length === 0 ? (
+                <s-text tone="subdued">
+                  {t("customers.detail.activity.empty")}
+                </s-text>
+              ) : (
+                <div className="customer-timeline-scroll">
+                  <div className="customer-timeline">
+                    {activityItems.map((ev, i) => (
+                      <div className="timeline-entry" key={ev.id}>
+                        <div className="timeline-marker">
+                          <s-icon
+                            type={eventIcon[ev.type] || "clock"}
+                            tone={eventTone[ev.type] || "subdued"}
+                          />
+                          {i < activityItems.length - 1 && (
+                            <span className="timeline-line" />
+                          )}
+                        </div>
+                        <div className="timeline-content">
+                          <s-text tone="subdued">{formatDateTime(ev.timestamp)}</s-text>
+                          <s-text fontWeight="medium">{ev.title}</s-text>
+                          {ev.description && (
+                            <s-text tone="subdued">{ev.description}</s-text>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {!isLoadingActivity && activityPagination?.hasNext && (
+                <s-stack direction="inline" justifyContent="center">
+                  <s-button
+                    onClick={handleLoadMoreActivity}
+                    disabled={isLoadingActivity}
+                    loading={isLoadingActivity}
+                  >
+                    {isLoadingActivity
+                      ? t("customers.detail.activity.loading")
+                      : t("customers.detail.activity.loadMore")}
+                  </s-button>
+                </s-stack>
+              )}
             </s-stack>
           </s-section>
         </s-grid-item>

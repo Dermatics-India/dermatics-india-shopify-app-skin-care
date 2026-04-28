@@ -71,9 +71,9 @@ export default function Analytics() {
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <s-text tone="subdued">{t(`analytics.${metric.key}.title`)}</s-text>
                 <span style={{ fontSize: "28px", fontWeight: 700 }}>{metric.value}</span>
-                <s-text tone="subdued">
+                {/* <s-text tone="subdued">
                   {new Date(range.start).toLocaleDateString()} – {new Date(range.end).toLocaleDateString()}
-                </s-text>
+                </s-text> */}
               </div>
             </s-section>
           ))}
