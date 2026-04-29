@@ -14,7 +14,8 @@ const Step2Img = "/assets/step2.png";
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
   return {
-    app_handle: process.env.SHOPIFY_THEME_EXTENSION_HANDLE
+    app_handle: process.env.SHOPIFY_THEME_EXTENSION_HANDLE,
+    supportEmailId: process.env.SUPPORT_EMAIL
   };
 };
 
@@ -23,7 +24,7 @@ export default function SetupGuidePage() {
   const shopify = useAppBridge();
   const navigate = useNavigate();
   const { shopData, embedStatus, checkEmbedStatus } = useShop();
-  const {  app_handle } = useLoaderData()
+  const {  app_handle, supportEmailId } = useLoaderData()
 
   const [activeStep, setActiveStep] = useState(null);
   const [guideExpanded, setGuideExpanded] = useState(true);
@@ -190,7 +191,7 @@ export default function SetupGuidePage() {
         </s-section>
 
         <s-stack direction="block" alignItems="center" paddingBlock="base">
-          <s-text tone="subdued">{t("SetupGuide.footer")}</s-text>
+          <s-text tone="subdued">{t("SetupGuide.footer", { supportEmail: supportEmailId })}</s-text>
         </s-stack>
       </s-stack>
     </s-page>

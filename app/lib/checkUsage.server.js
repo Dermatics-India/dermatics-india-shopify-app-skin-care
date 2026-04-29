@@ -4,6 +4,9 @@ import {
   isSubscriptionActive,
   planUnlocksFeature,
 } from "./planHelper.server.js";
+import prisma from "../db.server";
+import { sendMail } from "./mailer.server";
+import { usageLimitEmail } from "./emailTemplates.server";
 
 // Gate a feature endpoint behind plan + quota. Call from a Remix action
 // before doing the actual work, and use the returned `{ ok, response, plan,
@@ -61,6 +64,31 @@ export const checkUsageLimit = async ({ shopRecord, featureKey }) => {
 
   const result = await consumeUsage(shopRecord, plan);
   if (!result.allowed) {
+    // Send the limit email once per billing period.
+    const alreadyNotified =
+      shopRecord.usage?.limitNotifiedAt &&
+      shopRecord.usage.limitNotifiedAt >= shopRecord.usage.periodStart;
+
+    if (!alreadyNotified) {
+      await prisma.shop.update({
+        where: { id: shopRecord.id },
+        data: {
+          usage: {
+            count: shopRecord.usage?.count || 0,
+            periodStart: shopRecord.usage?.periodStart || new Date(),
+            limitNotifiedAt: new Date(),
+          },
+        },
+      });
+      const email = usageLimitEmail({
+        ownerName: shopRecord.ownerName,
+        shop: shopRecord.shop,
+        planName: plan.name,
+        usageLimit: plan.usageLimit,
+      });
+      sendMail({ to: shopRecord.ownerEmail, ...email });
+    }
+
     return {
       ok: false,
       response: Response.json(

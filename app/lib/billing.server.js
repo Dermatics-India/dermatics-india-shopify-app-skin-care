@@ -1,5 +1,7 @@
 import prisma from "../db.server";
 import shopify, { unauthenticated } from "../shopify.server";
+import { sendMail } from "./mailer.server";
+import { planUpgradeEmail, planExpiredEmail } from "./emailTemplates.server";
 import {
   PLAN_IDS,
   PLAN_INTERVALS,
@@ -531,6 +533,16 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
         permissions: permissionsForPlan(activePlan),
       },
     });
+
+    if (activePlan && activePlan.id !== PLAN_IDS.FREE) {
+      const email = planUpgradeEmail({
+        ownerName: shopRecord.ownerName,
+        shop,
+        planName: activePlan.name,
+        interval: shopRecord.subscription?.interval,
+      });
+      sendMail({ to: shopRecord.ownerEmail, ...email });
+    }
     return;
   }
 
@@ -539,14 +551,17 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
     incomingStatus === SUBSCRIPTION_STATUS.EXPIRED ||
     incomingStatus === SUBSCRIPTION_STATUS.DECLINED
   ) {
-    // Terminal — revoke paid features so the storefront widget locks now.
     await endSubscriptionToFree(shopRecord);
+    const email = planExpiredEmail({
+      ownerName: shopRecord.ownerName,
+      shop,
+      reason: incomingStatus,
+    });
+    sendMail({ to: shopRecord.ownerEmail, ...email });
     return;
   }
 
   if (incomingStatus === SUBSCRIPTION_STATUS.FROZEN) {
-    // Held by Shopify (failed renewal / dispute). Reactivatable within a
-    // grace window. Strip permissions but keep the sub row intact.
     const freePermissions = await getFreePlanPermissions();
     await prisma.shop.update({
       where: { id: shopRecord.id },
@@ -555,6 +570,12 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
         permissions: freePermissions,
       },
     });
+    const email = planExpiredEmail({
+      ownerName: shopRecord.ownerName,
+      shop,
+      reason: "FROZEN",
+    });
+    sendMail({ to: shopRecord.ownerEmail, ...email });
     return;
   }
 

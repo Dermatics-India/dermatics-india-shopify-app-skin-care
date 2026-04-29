@@ -340,7 +340,7 @@ This template uses [Remix](https://remix.run). The following Shopify tools are a
 - [Webhooks](https://github.com/Shopify/shopify-app-js/tree/main/packages/shopify-app-remix#authenticating-webhook-requests): Callbacks sent by Shopify when certain events occur
 - [Polaris](https://polaris.shopify.com/): Design system that enables apps to create Shopify-like experiences
 
-## Resources
+### Resources
 
 - [Remix Docs](https://remix.run/docs/en/v1)
 - [Shopify App Remix](https://shopify.dev/docs/api/shopify-app-remix)
@@ -351,7 +351,7 @@ This template uses [Remix](https://remix.run). The following Shopify tools are a
 - [Shopify Functions](https://shopify.dev/docs/api/functions)
 - [Getting started with internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
 
-#### Biling Integration Note: 
+### Biling Integration Note: 
 ```
 Development / pre-launch: install the app on a Shopify partner/development store (Partners dashboard → Stores → Add store → Development store). With this fix, billing will just work there with test: true.
 Production: in the Partner Dashboard, set App setup → Distribution to Public app (or submit the app for listing). Then real (non-test) charges are allowed on any merchant store.
@@ -379,3 +379,23 @@ npm run dev / deploy
 CRISP_WEBSITE_ID: Settings/Workspace settings/Setup & Integration
 
 
+### Email Service
+
+#### Google mail service
+- SMTP_PASS (The "App Password"): Two step verification must ON
+```
+Where to find it:
+- Go to your [Google Account Settings](https://myaccount.google.com/).
+- Select Security on the left menu.
+- Ensure 2-Step Verification is turned ON.
+- Search for "App Passwords" in the search bar at the top.
+- Create a new app password (name it something like "My Website").
+- Copy the 16-character code generated. This is your SMTP_PASS.
+```
+#### Quick Tip: If you ever change your main Gmail password, your App Password will automatically be revoked, and you will need to generate a new one for your code to keep working!
+
+#### Note: Restriction
+- 100 recipients per day
+
+#### [Amazon AWS SES](https://aws.amazon.com/ses/pricing/)
+- Free tier customers receive up to 3,000 message charges free each month for the first 12 months after you start using SES

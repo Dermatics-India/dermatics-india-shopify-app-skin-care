@@ -90,7 +90,7 @@
       "title": "You're all set!",
       "description": "Your Dermatics AI widget is live and ready for customers. Visit your storefront to see it in action."
     },
-    "footer": "Need help? Contact us at support@dermatics.in",
+    "footer": "Need help? Contact us at {{ supportEmail }}",
     "badges": {
       "done": "Done",
       "actionNeeded": "Action needed"

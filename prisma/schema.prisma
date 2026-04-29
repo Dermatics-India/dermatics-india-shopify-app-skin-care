@@ -75,14 +75,17 @@ type ShopSubscription {
 }
 
 type ShopUsage {
-  count       Int      @default(0)
-  periodStart DateTime @default(now())
+  count            Int       @default(0)
+  periodStart      DateTime  @default(now())
+  limitNotifiedAt  DateTime?
 }
 
 model Shop {
   id             String             @id @default(auto()) @map("_id") @db.ObjectId
   shop           String             @unique
   accessToken    String?
+  ownerEmail     String?
+  ownerName      String?
   isInstalled    Boolean            @default(false)
   installedAt    DateTime           @default(now())
   permissions    ShopPermissions

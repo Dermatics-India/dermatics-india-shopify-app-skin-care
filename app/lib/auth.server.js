@@ -1,6 +1,8 @@
 import prisma from "../db.server";
 import { sessionStorage } from "../shopify.server";
 import { PLAN_IDS } from "../constant/index.js";
+import { sendMail } from "./mailer.server";
+import { welcomeEmail, goodbyeEmail } from "./emailTemplates.server";
 
 // Called from the afterAuth hook (see shopify.server.js). Three scenarios:
 //   1. brand-new shop        → create with clean free-plan defaults
@@ -11,19 +13,39 @@ import { PLAN_IDS } from "../constant/index.js";
 //   3. reauth / scope change (still installed) → refresh token only. NEVER
 //      touch subscription/permissions here — an ACTIVE paying merchant who
 //      accepts a scope upgrade would otherwise get their paid sub wiped.
+async function fetchShopOwner(shop, accessToken) {
+  try {
+    const res = await fetch(`https://${shop}/admin/api/2024-01/shop.json`, {
+      headers: { "X-Shopify-Access-Token": accessToken },
+    });
+    const data = await res.json();
+    return {
+      ownerEmail: data?.shop?.email || null,
+      ownerName: data?.shop?.shop_owner || data?.shop?.name || null,
+    };
+  } catch {
+    return { ownerEmail: null, ownerName: null };
+  }
+}
+
 export const onAppInstall = async ({ session }) => {
   try {
     const shop = session.shop;
     const accessToken = session.accessToken;
 
     const existing = await prisma.shop.findUnique({ where: { shop } });
+    const { ownerEmail, ownerName } = await fetchShopOwner(shop, accessToken);
 
     let shopRecord;
+    let isNewInstall = false;
     if (!existing) {
+      isNewInstall = true;
       shopRecord = await prisma.shop.create({
         data: {
           shop,
           accessToken,
+          ownerEmail,
+          ownerName,
           isInstalled: true,
           installedAt: new Date(),
           permissions: { skinEnabled: true, hairEnabled: true },
@@ -37,13 +59,13 @@ export const onAppInstall = async ({ session }) => {
         },
       });
     } else if (!existing.isInstalled) {
-      // Reinstall — wipe anything that reflects a prior paid lifecycle and
-      // put the merchant back on the Free plan with full free-plan
-      // entitlements. Keep trialUsed.
+      isNewInstall = true;
       shopRecord = await prisma.shop.update({
         where: { id: existing.id },
         data: {
           accessToken,
+          ownerEmail: ownerEmail || existing.ownerEmail,
+          ownerName: ownerName || existing.ownerName,
           isInstalled: true,
           installedAt: new Date(),
           uninstalledAt: null,
@@ -81,6 +103,8 @@ export const onAppInstall = async ({ session }) => {
     });
 
     if (!existingSettings) {
+      const emptyBubbleText = { fontSize: 14, fontWeight: "normal", color: "#333333", marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 };
+      const emptyBubble = { heading: emptyBubbleText, text: emptyBubbleText };
       await prisma.settings.create({
         data: {
           shopId: shopRecord.id,
@@ -88,8 +112,8 @@ export const onAppInstall = async ({ session }) => {
           drawer: {
             header: {},
             bubble: {
-              boat: {},
-              user: {},
+              boat: emptyBubble,
+              user: emptyBubble,
             },
           },
           modules: {
@@ -101,6 +125,11 @@ export const onAppInstall = async ({ session }) => {
     }
 
     console.log(`🚀 [DATABASE] New installation stored for: ${shop}`);
+
+    if (isNewInstall) {
+      const email = welcomeEmail({ ownerName: shopRecord.ownerName, shop });
+      sendMail({ to: shopRecord.ownerEmail, ...email });
+    }
   } catch (err) {
     console.error("❌ [INSTALL_ERROR]:", err.message);
   }
@@ -140,6 +169,9 @@ export const onAppUninstall = async ({ shop }) => {
         },
       });
       console.log(`🗑️ [DATABASE] Shop record updated: ${shop}`);
+
+      const email = goodbyeEmail({ ownerName: shopRecord.ownerName, shop });
+      sendMail({ to: shopRecord.ownerEmail, ...email });
     }
 
     // Clear any lingering Shopify sessions held in our session storage.
