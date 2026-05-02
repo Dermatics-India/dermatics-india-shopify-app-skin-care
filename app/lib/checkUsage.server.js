@@ -5,8 +5,7 @@ import {
   planUnlocksFeature,
 } from "./planHelper.server.js";
 import prisma from "../db.server";
-import { sendMail } from "./mailer.server";
-import { usageLimitEmail } from "./emailTemplates.server";
+import { sendTemplateMail, buildMergeInfo } from "./mailer.server";
 
 // Gate a feature endpoint behind plan + quota. Call from a Remix action
 // before doing the actual work, and use the returned `{ ok, response, plan,
@@ -80,13 +79,15 @@ export const checkUsageLimit = async ({ shopRecord, featureKey }) => {
           },
         },
       });
-      const email = usageLimitEmail({
-        ownerName: shopRecord.ownerName,
-        shop: shopRecord.shop,
-        planName: plan.name,
-        usageLimit: plan.usageLimit,
+      sendTemplateMail({
+        to: shopRecord.ownerEmail,
+        toName: shopRecord.ownerName,
+        templateKey: process.env.ZEPTOMAIL_TEMPLATE_USAGE_LIMIT,
+        mergeInfo: buildMergeInfo({
+          shop: shopRecord.shop,
+          planName: plan.name,
+        }),
       });
-      sendMail({ to: shopRecord.ownerEmail, ...email });
     }
 
     return {

@@ -1,8 +1,4 @@
-const APP_URL = process.env.SHOPIFY_APP_URL || "https://dermatics.in";
-const SHOPIFY_APP_STORE_URL = "https://apps.shopify.com/dermatics-ai"
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@amerce.ai";
-const BRAND_COLOR = "#0084ff";
-const BRAND_NAME = "Dermatics AI";
+import { APP_NAME as BRAND_NAME, BRAND_COLOR, APP_STORE_URL as SHOPIFY_APP_STORE_URL, SUPPORT_EMAIL } from "../constant/app.js";
 
 function baseLayout({ previewText, body }) {
   return `<!DOCTYPE html>

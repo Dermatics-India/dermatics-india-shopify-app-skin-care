@@ -399,3 +399,6 @@ Where to find it:
 
 #### [Amazon AWS SES](https://aws.amazon.com/ses/pricing/)
 - Free tier customers receive up to 3,000 message charges free each month for the first 12 months after you start using SES
+
+#### Zoho-Zepto-mail service
+- 

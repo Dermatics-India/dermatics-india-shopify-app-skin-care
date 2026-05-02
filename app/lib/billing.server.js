@@ -1,7 +1,6 @@
 import prisma from "../db.server";
 import shopify, { unauthenticated } from "../shopify.server";
-import { sendMail } from "./mailer.server";
-import { planUpgradeEmail, planExpiredEmail } from "./emailTemplates.server";
+import { sendTemplateMail, buildMergeInfo } from "./mailer.server";
 import {
   PLAN_IDS,
   PLAN_INTERVALS,
@@ -535,13 +534,16 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
     });
 
     if (activePlan && activePlan.id !== PLAN_IDS.FREE) {
-      const email = planUpgradeEmail({
-        ownerName: shopRecord.ownerName,
-        shop,
-        planName: activePlan.name,
-        interval: shopRecord.subscription?.interval,
+      sendTemplateMail({
+        to: shopRecord.ownerEmail,
+        toName: shopRecord.ownerName,
+        templateKey: process.env.ZEPTOMAIL_TEMPLATE_PLAN_UPGRADE,
+        mergeInfo: buildMergeInfo({
+          shop,
+          planName: activePlan.name,
+          trialEndsAt: trialEndsAt || null,
+        }),
       });
-      sendMail({ to: shopRecord.ownerEmail, ...email });
     }
     return;
   }
@@ -551,31 +553,34 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
     incomingStatus === SUBSCRIPTION_STATUS.EXPIRED ||
     incomingStatus === SUBSCRIPTION_STATUS.DECLINED
   ) {
+    const expiredPlan = shopRecord.subscription?.planId
+      ? await prisma.plan.findUnique({ where: { id: shopRecord.subscription.planId } })
+      : null;
     await endSubscriptionToFree(shopRecord);
-    const email = planExpiredEmail({
-      ownerName: shopRecord.ownerName,
-      shop,
-      reason: incomingStatus,
+    sendTemplateMail({
+      to: shopRecord.ownerEmail,
+      toName: shopRecord.ownerName,
+      templateKey: process.env.ZEPTOMAIL_TEMPLATE_PLAN_EXPIRED,
+      mergeInfo: buildMergeInfo({ shop, planName: expiredPlan?.name || "your plan" }),
     });
-    sendMail({ to: shopRecord.ownerEmail, ...email });
     return;
   }
 
   if (incomingStatus === SUBSCRIPTION_STATUS.FROZEN) {
+    const frozenPlan = shopRecord.subscription?.planId
+      ? await prisma.plan.findUnique({ where: { id: shopRecord.subscription.planId } })
+      : null;
     const freePermissions = await getFreePlanPermissions();
     await prisma.shop.update({
       where: { id: shopRecord.id },
-      data: {
-        subscription: baseSub,
-        permissions: freePermissions,
-      },
+      data: { subscription: baseSub, permissions: freePermissions },
     });
-    const email = planExpiredEmail({
-      ownerName: shopRecord.ownerName,
-      shop,
-      reason: "FROZEN",
+    sendTemplateMail({
+      to: shopRecord.ownerEmail,
+      toName: shopRecord.ownerName,
+      templateKey: process.env.ZEPTOMAIL_TEMPLATE_PLAN_EXPIRED,
+      mergeInfo: buildMergeInfo({ shop, planName: frozenPlan?.name || "your plan" }),
     });
-    sendMail({ to: shopRecord.ownerEmail, ...email });
     return;
   }
 

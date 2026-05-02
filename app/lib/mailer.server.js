@@ -1,5 +1,6 @@
 // ── ZeptoMail (active) ────────────────────────────────────────────────────────
 import { SendMailClient } from "zeptomail";
+import { APP_NAME, APP_STORE_URL } from "../constant/app.js";
 
 let _zepto = null;
 function getZeptoClient() {
@@ -11,16 +12,8 @@ function getZeptoClient() {
   return _zepto;
 }
 
-async function sendViaZeptoMail({ to, subject, html }) {
-  await getZeptoClient().sendMail({
-    from: {
-      address: process.env.ZEPTOMAIL_FROM_EMAIL,
-      name: process.env.ZEPTOMAIL_FROM_NAME || "Dermatics AI",
-    },
-    to: [{ email_address: { address: to } }],
-    subject,
-    htmlbody: html,
-  });
+function isZeptoConfigured() {
+  return !!(process.env.ZEPTOMAIL_TOKEN && process.env.ZEPTOMAIL_FROM_EMAIL);
 }
 
 // ── Nodemailer / Gmail SMTP (kept for reference, not active) ──────────────────
@@ -33,10 +26,7 @@ async function sendViaZeptoMail({ to, subject, html }) {
 //     host: process.env.SMTP_HOST,
 //     port: Number(process.env.SMTP_PORT) || 587,
 //     secure: process.env.SMTP_SECURE === "true",
-//     auth: {
-//       user: process.env.SMTP_USER,
-//       pass: process.env.SMTP_PASS,
-//     },
+//     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 //   });
 //   return _transporter;
 // }
@@ -44,38 +34,82 @@ async function sendViaZeptoMail({ to, subject, html }) {
 // async function sendViaSmtp({ to, subject, html }) {
 //   await getTransporter().sendMail({
 //     from: process.env.SMTP_FROM || `"Dermatics AI" <noreply@dermatics.in>`,
-//     to,
-//     subject,
-//     html,
+//     to, subject, html,
 //   });
 // }
 
-// ── Unified sendMail — uses ZeptoMail when configured, SMTP otherwise ─────────
-/**
- * Send a transactional email.
- * Silently no-ops when no mail provider is configured (local dev).
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// buildMergeInfo
+// Constructs the standard merge_info object shared across all ZeptoMail
+// templates. Override only the fields that differ per email type.
+// ─────────────────────────────────────────────────────────────────────────────
+export function buildMergeInfo({ shop, planName = "", trialEndsAt = null, link = null } = {}) {
+  return {
+    app_name: APP_NAME,
+    store_name: shop || "",
+    plan_name: planName,
+    trial_date: trialEndsAt
+      ? trialEndsAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      : "",
+    trial_end_link: link || (shop ? `https://${shop}/admin/apps` : APP_STORE_URL),
+    team: `${APP_NAME} Team`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendTemplateMail
+// Sends a ZeptoMail template-based email.
+// templateKey → env var value from ZEPTOMAIL_TEMPLATE_* vars
+// mergeInfo   → use buildMergeInfo() to construct
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendTemplateMail({ to, toName, templateKey, mergeInfo = {} }) {
+  if (!isZeptoConfigured()) {
+    console.warn(`[mailer] ZeptoMail not configured — skipping template "${templateKey}" to ${to}`);
+    return;
+  }
+  if (!to || !templateKey) {
+    console.warn(`[mailer] Missing recipient or templateKey — skipping`);
+    return;
+  }
+  try {
+    await getZeptoClient().sendMailWithTemplate({
+      template_key: templateKey,
+      from: {
+        address: process.env.ZEPTOMAIL_FROM_EMAIL,
+        name: APP_NAME,
+      },
+      to: [{ email_address: { address: to, name: toName || "" } }],
+      merge_info: mergeInfo,
+    });
+    console.log(`[mailer] Sent template "${templateKey}" → ${to}`);
+  } catch (err) {
+    console.error(`[mailer] Failed to send template "${templateKey}":`, err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendMail
+// Sends a raw HTML email via ZeptoMail (kept for custom/one-off use).
+// ─────────────────────────────────────────────────────────────────────────────
 export async function sendMail({ to, subject, html }) {
+  if (!isZeptoConfigured()) {
+    console.warn(`[mailer] ZeptoMail not configured — skipping "${subject}" to ${to}`);
+    return;
+  }
   if (!to) {
     console.warn(`[mailer] No recipient for "${subject}" — skipping`);
     return;
   }
-
-  const useZepto = process.env.ZEPTOMAIL_TOKEN && process.env.ZEPTOMAIL_FROM_EMAIL;
-  // const useSmtp = process.env.SMTP_HOST && process.env.SMTP_USER;
-
-  if (!useZepto /* && !useSmtp */) {
-    console.warn(`[mailer] No mail provider configured — skipping "${subject}" to ${to}`);
-    return;
-  }
-
   try {
-    if (useZepto) {
-      await sendViaZeptoMail({ to, subject, html });
-    }
-    // else if (useSmtp) {
-    //   await sendViaSmtp({ to, subject, html });
-    // }
+    await getZeptoClient().sendMail({
+      from: {
+        address: process.env.ZEPTOMAIL_FROM_EMAIL,
+        name: APP_NAME,
+      },
+      to: [{ email_address: { address: to } }],
+      subject,
+      htmlbody: html,
+    });
     console.log(`[mailer] Sent "${subject}" → ${to}`);
   } catch (err) {
     console.error(`[mailer] Failed to send "${subject}":`, err.message);

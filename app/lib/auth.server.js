@@ -1,8 +1,8 @@
 import prisma from "../db.server";
 import { sessionStorage } from "../shopify.server";
 import { PLAN_IDS } from "../constant/index.js";
-import { sendMail } from "./mailer.server";
-import { welcomeEmail, goodbyeEmail } from "./emailTemplates.server";
+import { APP_STORE_URL } from "../constant/app.js";
+import { sendTemplateMail, buildMergeInfo } from "./mailer.server";
 
 // Called from the afterAuth hook (see shopify.server.js). Three scenarios:
 //   1. brand-new shop        → create with clean free-plan defaults
@@ -127,8 +127,12 @@ export const onAppInstall = async ({ session }) => {
     console.log(`🚀 [DATABASE] New installation stored for: ${shop}`);
 
     if (isNewInstall) {
-      const email = welcomeEmail({ ownerName: shopRecord.ownerName, shop });
-      sendMail({ to: shopRecord.ownerEmail, ...email });
+      sendTemplateMail({
+        to: shopRecord.ownerEmail,
+        toName: shopRecord.ownerName,
+        templateKey: process.env.ZEPTOMAIL_TEMPLATE_ON_INSTALL,
+        mergeInfo: buildMergeInfo({ shop, planName: "Free" }),
+      });
     }
   } catch (err) {
     console.error("❌ [INSTALL_ERROR]:", err.message);
@@ -170,8 +174,15 @@ export const onAppUninstall = async ({ shop }) => {
       });
       console.log(`🗑️ [DATABASE] Shop record updated: ${shop}`);
 
-      const email = goodbyeEmail({ ownerName: shopRecord.ownerName, shop });
-      sendMail({ to: shopRecord.ownerEmail, ...email });
+      sendTemplateMail({
+        to: shopRecord.ownerEmail,
+        toName: shopRecord.ownerName,
+        templateKey: process.env.ZEPTOMAIL_TEMPLATE_ON_UNINSTALL,
+        mergeInfo: buildMergeInfo({
+          shop,
+          link: APP_STORE_URL,
+        }),
+      });
     }
 
     // Clear any lingering Shopify sessions held in our session storage.
