@@ -138,7 +138,6 @@ export const getPlans = async ({ shopRecord }) => {
       ? {
           id: currentPlan.id,
           name: currentPlan.name,
-          isUnlimited: currentPlan.isUnlimited,
           featureKeys: currentPlan.featureKeys || [],
         }
       : null,

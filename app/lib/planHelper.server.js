@@ -84,15 +84,12 @@ export const getPlanForShop = async (shopRecord) => {
 
 export const getUsageStatus = (shopRecord, plan) => {
   const count = shopRecord?.usage?.count || 0;
-  const limit = plan?.isUnlimited ? null : plan?.usageLimit || 0;
-  const remaining = plan?.isUnlimited
-    ? null
-    : Math.max(0, limit - count);
+  const limit = plan?.usageLimit || 0;
+  const remaining = Math.max(0, limit - count);
   return {
     count,
     limit,
     remaining,
-    unlimited: Boolean(plan?.isUnlimited),
     periodEndsAt: periodEndsAt(shopRecord),
   };
 };
@@ -116,9 +113,10 @@ export const getFreePlanPermissions = async () => {
 };
 
 // Atomic-ish increment guarded by quota. Returns { allowed, status, reason }.
-// We rollover the period inline first, then use a conditional updateMany
-// (count < usageLimit) so concurrent calls cannot push the counter past the cap.
-export const consumeUsage = async (shopRecord, plan) => {
+// units defaults to 0.5 — image upload and product analysis each cost half a scan.
+// We rollover the period inline first, then use a conditional updateMany so
+// concurrent calls cannot push the counter past the cap.
+export const consumeUsage = async (shopRecord, plan, units = 0.5) => {
   if (!plan) return { allowed: false, reason: "Plan not found" };
 
   if (rolloverUsageIfExpired(shopRecord)) {
@@ -133,31 +131,16 @@ export const consumeUsage = async (shopRecord, plan) => {
     });
   }
 
-  if (plan.isUnlimited) {
-    const nextCount = (shopRecord.usage?.count || 0) + 1;
-    await prisma.shop.update({
-      where: { id: shopRecord.id },
-      data: {
-        usage: {
-          count: nextCount,
-          periodStart: shopRecord.usage?.periodStart || new Date(),
-        },
-      },
-    });
-    shopRecord.usage.count = nextCount;
-    return { allowed: true, status: getUsageStatus(shopRecord, plan) };
-  }
-
-  // Guard against overshoot under concurrency: updateMany with a count filter.
+  // Guard: only update if room remains for `units` more (lte = count + units ≤ limit).
   const currentCount = shopRecord.usage?.count || 0;
   const result = await prisma.shop.updateMany({
     where: {
       id: shopRecord.id,
-      usage: { is: { count: { lt: plan.usageLimit } } },
+      usage: { is: { count: { lte: plan.usageLimit - units } } },
     },
     data: {
       usage: {
-        count: currentCount + 1,
+        count: currentCount + units,
         periodStart: shopRecord.usage?.periodStart || new Date(),
       },
     },
@@ -171,6 +154,6 @@ export const consumeUsage = async (shopRecord, plan) => {
     };
   }
 
-  shopRecord.usage.count = currentCount + 1;
+  shopRecord.usage.count = currentCount + units;
   return { allowed: true, status: getUsageStatus(shopRecord, plan) };
 };

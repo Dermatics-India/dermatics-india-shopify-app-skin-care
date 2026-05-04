@@ -70,6 +70,7 @@ export const onAppInstall = async ({ session }) => {
           installedAt: new Date(),
           uninstalledAt: null,
           permissions: { skinEnabled: true, hairEnabled: true },
+          settings: { appEmbedEnabled: false, isCustomized: false },
           subscription: {
             id: null,
             planId: PLAN_IDS.FREE,
@@ -144,9 +145,11 @@ export const onAppInstall = async ({ session }) => {
 export const onAppUninstall = async ({ shop }) => {
   try {
     const shopRecord = await prisma.shop.findUnique({ where: { shop } });
-
+    console.log("onAppUnInstall:::", shopRecord)
     if (shopRecord) {
-      await prisma.settings.deleteMany({ where: { shopId: shopRecord.id } });
+      await prisma.settings.delete({ where: { shopId: shopRecord.id } }).catch((e) => {
+        if (e?.code !== "P2025") throw e; // P2025 = record not found — already gone, fine
+      });
       console.log(`🗑️ [DATABASE] Settings deleted for: ${shop}`);
 
       await prisma.shop.update({
@@ -156,6 +159,7 @@ export const onAppUninstall = async ({ shop }) => {
           accessToken: null,
           uninstalledAt: new Date(),
           permissions: { skinEnabled: true, hairEnabled: true },
+          settings: { appEmbedEnabled: false, isCustomized: false },
           subscription: {
             id: null,
             planId: PLAN_IDS.FREE,

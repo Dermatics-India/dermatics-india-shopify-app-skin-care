@@ -13,6 +13,8 @@ class ApiHandler {
           return {
             data: null,
             error: json.message || json.error || `Error: ${res.status}`,
+            code: json.code || null,
+            nextAvailableAt: json.nextAvailableAt || null,
           };
         }
         // If the API nests data inside a 'data' key, we extract it; 
@@ -79,6 +81,9 @@ class DermaApiService {
       customer: `${this.proxy}/customer`,
       analysisStart: `${this.proxy}/analysis/start`,
       analysisComplete: `${this.proxy}/analysis/complete`,
+      productRecommendation: `${this.proxy}/analysis/product-recommendation`,
+      imageUploaded: `${this.proxy}/analysis/image-uploaded`,
+      scanCheck: `${this.proxy}/scan-check`,
     };
 
     // Instantiate your existing ApiHandler
@@ -131,6 +136,22 @@ class DermaApiService {
   async recordAnalysisComplete(payload) {
     return this.api.post(this.endpoints.analysisComplete, payload)
       .catch((err) => ({ data: null, error: err.message }));
+  }
+
+  async recordProductRecommendation(payload) {
+    return this.api.post(this.endpoints.productRecommendation, payload)
+      .catch((err) => ({ data: null, error: err.message }));
+  }
+
+  async recordImageUploaded(payload) {
+    return this.api.post(this.endpoints.imageUploaded, payload)
+      .catch((err) => ({ data: null, error: err.message }));
+  }
+
+  async checkScanLimit(customerId) {
+    const params = customerId ? { customerId } : {};
+    return this.api.get(this.endpoints.scanCheck, params)
+      .catch(() => ({ data: { allowed: true }, error: null }));
   }
 }
 
@@ -617,6 +638,19 @@ class DermaAIWizard {
     if (res === 'not-active') return;
 
     this.renderChatUI();
+
+    // Check daily scan limit before starting (uses logged-in customer identity)
+    const limitCheck = await this.apiService.checkScanLimit(this.state.customerId);
+    if (!limitCheck?.data?.allowed) {
+      const resetTime = limitCheck?.data?.nextAvailableAt
+        ? new Date(limitCheck.data.nextAvailableAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " UTC"
+        : "midnight UTC";
+      this.addBot({
+        text: `⛔ You've used your daily scan limit (${limitCheck?.data?.scansLimit || 2} scans/day). Your limit resets at ${resetTime}.`,
+      });
+      return;
+    }
+
     this.addBot({ text: "⏳ Preparing your personalized assessment..." });
 
     // console.log("timeline:::", this.state.timeline)
@@ -665,6 +699,19 @@ class DermaAIWizard {
       externalSessionId: this.state.sessionId,
       flowType: this.flowConfig[this.state.activeFlow]?.flowType,
     });
+
+    if (sessionRes?.code === "DAILY_LIMIT_REACHED") {
+      const resetTime = sessionRes.nextAvailableAt
+        ? new Date(sessionRes.nextAvailableAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " UTC"
+        : "midnight UTC";
+      this.addBot({ text: `⛔ Daily scan limit reached. Try again after ${resetTime}.` });
+      return;
+    }
+    if (sessionRes?.code === "USAGE_LIMIT_REACHED") {
+      this.addBot({ text: "⛔ Monthly scan limit reached. Please upgrade your plan to continue." });
+      return;
+    }
+
     if (sessionRes?.data?.sessionId) {
       this.state.aiSessionId = sessionRes.data.sessionId;
     }
@@ -699,6 +746,14 @@ class DermaAIWizard {
       return;
     }
     this.state.isSubmitting = false;
+
+    if (stepId === "product_recommendation_start") {
+      this.apiService.recordProductRecommendation({
+        sessionId: this.state.aiSessionId || undefined,
+        externalSessionId: this.state.sessionId || undefined,
+      }).catch((err) => console.warn("product recommendation count", err));
+    }
+
     if (data?.ui) {
       if (data?.ui?.ui_type !== "ai_report") {
         this.addBot({
@@ -1008,11 +1063,29 @@ class DermaAIWizard {
         if (error) {
           console.error(error);
           this.notifyError("❌ Image upload failed. Please try another photo.");
-          // Some time Failing Imgae uplod 
-          // Need to new Session id for retry upload , if you got not proper image with valid reason 
+          // Some time Failing Imgae uplod
+          // Need to new Session id for retry upload , if you got not proper image with valid reason
           // this.renderImageUpload()
           return;
         }
+
+        // Image uploaded successfully — record 0.5 scan and enforce daily limit
+        const uploadRes = await this.apiService.recordImageUploaded({
+          sessionId: this.state.aiSessionId || undefined,
+          externalSessionId: this.state.sessionId || undefined,
+        });
+        if (uploadRes?.code === "DAILY_LIMIT_REACHED") {
+          const resetTime = uploadRes.nextAvailableAt
+            ? new Date(uploadRes.nextAvailableAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " UTC"
+            : "midnight UTC";
+          this.addBot({ text: `⛔ Daily scan limit reached. Try again after ${resetTime}.` });
+          return;
+        }
+        if (uploadRes?.code === "USAGE_LIMIT_REACHED") {
+          this.addBot({ text: "⛔ Monthly scan limit reached. Please upgrade your plan to continue." });
+          return;
+        }
+
         if (data?.ui) {
           this.addBot({
             heading: data?.ui?.heading || "",

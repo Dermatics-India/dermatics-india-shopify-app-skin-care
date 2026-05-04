@@ -44,7 +44,6 @@ model Plan {
   currency     String   @default("USD")
   features     String[]
   featureKeys  String[] @default([])
-  isUnlimited  Boolean  @default(false)
   usageLimit   Int      @default(0)
   trialDays    Int      @default(0)
   createdAt    DateTime @default(now())
@@ -75,7 +74,7 @@ type ShopSubscription {
 }
 
 type ShopUsage {
-  count            Int       @default(0)
+  count            Float     @default(0)
   periodStart      DateTime  @default(now())
   limitNotifiedAt  DateTime?
 }
@@ -199,13 +198,14 @@ model Customer {
   email             String?
   firstName         String?
   lastName          String?
-  totalScans        Int      @default(0)
-  completedScans    Int      @default(0)
+  totalScans        Float    @default(0)
   orderCount        Int      @default(0)
   totalSpend        Float    @default(0)
   currency          String?
   lastAnalysisAt    DateTime?
   lastOrderAt       DateTime?
+  dailyScanCount    Int      @default(0)  // resets each UTC day
+  dailyScanDate     String?               // "YYYY-MM-DD" — date of current dailyScanCount
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

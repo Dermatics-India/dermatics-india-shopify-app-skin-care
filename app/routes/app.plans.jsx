@@ -188,22 +188,16 @@ export default function Plans() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <s-heading>{t("plans.currentPlanLabel", { name: currentPlan.name })}</s-heading>
-                {currentPlan.isUnlimited ? (
-                  <s-badge tone="success">{t("plans.unlimited")}</s-badge>
-                ) : (
-                  <s-badge>
-                    {t("plans.scansUsed", { count: usage.count, limit: usage.limit })}
-                  </s-badge>
-                )}
+                <s-badge>
+                  {t("plans.scansUsed", { count: usage.count, limit: usage.limit })}
+                </s-badge>
               </div>
-              {!currentPlan.isUnlimited && (
-                <>
-                  <ProgressBar progress={usageProgress} size="small" />
-                  <s-text tone="subdued">
-                    {t("plans.resets", { date: new Date(usage.periodEndsAt).toLocaleDateString() })}
-                  </s-text>
-                </>
-              )}
+              <>
+                <ProgressBar progress={usageProgress} size="small" />
+                <s-text tone="subdued">
+                  {t("plans.resets", { date: new Date(usage.periodEndsAt).toLocaleDateString() })}
+                </s-text>
+              </>
               {/* If merchant is on a paid plan, surface their billing
                   cadence so the toggle's effect is unambiguous. */}
               {currentPlan.id !== PLAN_IDS.FREE && subscription?.interval && (

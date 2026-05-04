@@ -1,7 +1,21 @@
 import prisma from "../db.server";
 import { getCustomerActivity } from "./activity.server";
-
 import { normalizeShopifyCustomerId, requireShop, rangeFromSearchParams } from "./serverHelper";
+import { getPlanForShop, consumeUsage } from "./planHelper.server";
+
+const DAILY_SCAN_LIMIT = 2;
+const USAGE_PER_SCAN = 0.5
+
+function todayUTC() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+function nextMidnightUTC() {
+  const t = new Date();
+  t.setUTCDate(t.getUTCDate() + 1);
+  t.setUTCHours(0, 0, 0, 0);
+  return t.toISOString();
+}
 
 const DETAIL_ORDERS_PAGE_SIZE = 10;
 const DETAIL_ACTIVITY_PAGE_SIZE = 15;
@@ -91,7 +105,8 @@ export async function getCustomerOrders({
 }
 
 export async function getCustomerList({ shopId, searchParams }) {
-  const range = rangeFromSearchParams(searchParams);
+  const hasExplicitRange = searchParams?.get("start") && searchParams?.get("end");
+  const range = hasExplicitRange ? rangeFromSearchParams(searchParams) : null;
 
   const rows = await prisma.customer.findMany({
     where: {
@@ -200,6 +215,27 @@ export async function upsertCustomer({ shopDomain, payload }) {
   };
 }
 
+export async function checkScanAvailability({ shopDomain, customerId }) {
+  const { shop, error } = await requireShop(shopDomain);
+  if (error) return { allowed: true };
+
+  const today = todayUTC();
+  const customer = customerId
+    ? await prisma.customer.findFirst({ where: { id: customerId, shopId: shop.id } })
+    : null;
+
+  const isToday = customer?.dailyScanDate === today;
+  const countToday = isToday ? (customer?.dailyScanCount || 0) : 0;
+  const allowed = countToday < DAILY_SCAN_LIMIT;
+
+  return {
+    allowed,
+    scansUsed: countToday,
+    scansLimit: DAILY_SCAN_LIMIT,
+    nextAvailableAt: allowed ? null : nextMidnightUTC(),
+  };
+}
+
 export async function recordAnalysisStart({ shopDomain, payload }) {
   const { shop, error } = await requireShop(shopDomain);
   if (error) return error;
@@ -216,7 +252,8 @@ export async function recordAnalysisStart({ shopDomain, payload }) {
     return { status: 404, body: { success: false, message: "Customer not found" } };
   }
 
-  const now = new Date();
+  // Session start is pure activity — no quota consumed here.
+  // Counting happens at image upload (0.5) and product recommendations (0.5).
   const session = await prisma.aiSession.create({
     data: {
       shopId: shop.id,
@@ -224,17 +261,104 @@ export async function recordAnalysisStart({ shopDomain, payload }) {
       externalSessionId: externalSessionId || null,
       flowType: flowType || null,
       status: "started",
-      startedAt: now,
+      startedAt: new Date(),
     },
   });
 
-  await prisma.customer.update({
-    where: { id: customer.id },
-    data: {
-      totalScans: { increment: 1 },
-      lastAnalysisAt: now,
-    },
+  return {
+    status: 200,
+    body: { success: true, data: { sessionId: session.id } },
+  };
+}
+
+// Shared: look up an AI session by internal id or external id.
+async function findSession(shopId, { sessionId, externalSessionId }) {
+  if (sessionId) {
+    return prisma.aiSession.findFirst({ where: { id: sessionId, shopId } });
+  }
+  return prisma.aiSession.findFirst({
+    where: { shopId, externalSessionId, status: "started" },
+    orderBy: { startedAt: "desc" },
   });
+}
+
+// Shared: consume USAGE_PER_SCAN quota then update the customer record.
+// `customerData` is the Prisma update payload for Customer (field increments etc.).
+// `strict` = true  → blocks on quota denial and returns a 429 result object.
+// `strict` = false → best-effort, never blocks (fire-and-forget quota).
+async function consumeAndUpdateCustomer(shop, customerId, customerData, strict = true) {
+  const plan = await getPlanForShop(shop);
+  const usageResult = await consumeUsage(shop, plan, USAGE_PER_SCAN).catch(() => ({ allowed: true }));
+
+  if (strict && !usageResult.allowed) {
+    return {
+      denied: true,
+      result: {
+        status: 429,
+        body: {
+          success: false,
+          code: "USAGE_LIMIT_REACHED",
+          message: usageResult.reason,
+          usage: usageResult.status,
+        },
+      },
+    };
+  }
+
+  await prisma.customer.update({ where: { id: customerId }, data: customerData });
+  return { denied: false };
+}
+
+// Called after the customer successfully uploads an image in the widget.
+// This is the first billable half-scan: checks daily limit + consumes 0.5 quota.
+export async function recordImageUploaded({ shopDomain, payload }) {
+  const { shop, error } = await requireShop(shopDomain);
+  if (error) return error;
+
+  const { sessionId, externalSessionId } = payload || {};
+  if (!sessionId && !externalSessionId) {
+    return { status: 400, body: { success: false, message: "sessionId or externalSessionId is required" } };
+  }
+
+  const session = await findSession(shop.id, { sessionId, externalSessionId });
+  if (!session) {
+    return { status: 404, body: { success: false, message: "Session not found" } };
+  }
+
+  const customer = await prisma.customer.findFirst({ where: { id: session.customerId } });
+  if (!customer) {
+    return { status: 404, body: { success: false, message: "Customer not found" } };
+  }
+
+  // ── 1. Daily scan limit ───────────────────────────────────────────────────
+  const today = todayUTC();
+  const isToday = customer.dailyScanDate === today;
+  const countToday = isToday ? (customer.dailyScanCount || 0) : 0;
+
+  if (countToday >= DAILY_SCAN_LIMIT) {
+    return {
+      status: 429,
+      body: {
+        success: false,
+        code: "DAILY_LIMIT_REACHED",
+        message: `Daily scan limit reached (${DAILY_SCAN_LIMIT} scans/day). Try again tomorrow.`,
+        nextAvailableAt: nextMidnightUTC(),
+      },
+    };
+  }
+
+  // ── 2. Quota + customer update ────────────────────────────────────────────
+  const { denied, result } = await consumeAndUpdateCustomer(
+    shop, 
+    customer.id, 
+    {
+      totalScans: { increment: USAGE_PER_SCAN },
+      lastAnalysisAt: new Date(),
+      dailyScanCount: { increment: USAGE_PER_SCAN },
+      dailyScanDate: today,
+    }
+  );
+  if (denied) return result;
 
   return {
     status: 200,
@@ -270,13 +394,42 @@ export async function recordAnalysisComplete({ shopDomain, payload }) {
     data: { status: "completed", completedAt: new Date() },
   });
 
-  await prisma.customer.update({
-    where: { id: existing.customerId },
-    data: { completedScans: { increment: 1 } },
-  });
-
   return {
     status: 200,
     body: { success: true, data: { sessionId: existing.id } },
+  };
+}
+
+// Called when the product recommendation response is received by the widget.
+// Consumes 0.5 plan quota and increments the customer's completed scan count.
+export async function recordProductRecommendation({ shopDomain, payload }) {
+  const { shop, error } = await requireShop(shopDomain);
+  if (error) return error;
+
+  const { sessionId, externalSessionId } = payload || {};
+  if (!sessionId && !externalSessionId) {
+    return { status: 400, body: { success: false, message: "sessionId or externalSessionId is required" } };
+  }
+
+  const session = await findSession(shop.id, { sessionId, externalSessionId });
+  if (!session) {
+    return { status: 404, body: { success: false, message: "Session not found" } };
+  }
+
+  // Best-effort: never block product recommendations on quota denial.
+  await consumeAndUpdateCustomer(
+    shop,
+    session.customerId,
+    { 
+      totalScans: { increment: USAGE_PER_SCAN },
+      lastAnalysisAt: new Date(),
+      dailyScanCount: { increment: USAGE_PER_SCAN }
+    },
+    false,
+  );
+
+  return {
+    status: 200,
+    body: { success: true, data: { sessionId: session.id } },
   };
 }

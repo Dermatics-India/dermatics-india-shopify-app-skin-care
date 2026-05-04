@@ -1,3 +1,5 @@
+import prisma from "../db.server";
+
 export function normalizeShopifyCustomerId(value) {
   if (value == null) return null;
   if (typeof value === "string" && value.startsWith("gid://")) {

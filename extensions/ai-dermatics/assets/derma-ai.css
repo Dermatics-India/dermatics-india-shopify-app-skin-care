@@ -508,6 +508,12 @@
   gap: 14px;
 }
 
+.analysis-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .analysis-card {
   border: 1px solid var(--derma-border);
   background: #fff;
