@@ -150,13 +150,6 @@ type DrawerConfig {
   bubble  DrawerBubbles
 }
 
-type ModuleText {
-  label      String @default("Label Text")
-  textColor  String @default("#333333")
-  fontSize   Int    @default(14)
-  fontWeight String @default("normal")
-}
-
 type ModuleImage {
   url    String @default("")
   height Int    @default(50)
@@ -164,15 +157,35 @@ type ModuleImage {
   radius Int    @default(15)
 }
 
-type ModuleConfig {
-  enabled Boolean     @default(true)
-  text    ModuleText
+type SkinModuleText {
+  label      String @default("Skin Analysis")
+  textColor  String @default("#333333")
+  fontSize   Int    @default(14)
+  fontWeight String @default("normal")
+}
+
+type HairModuleText {
+  label      String @default("Hair Analysis")
+  textColor  String @default("#333333")
+  fontSize   Int    @default(14)
+  fontWeight String @default("normal")
+}
+
+type SkinModuleConfig {
+  enabled Boolean        @default(true)
+  text    SkinModuleText
+  image   ModuleImage
+}
+
+type HairModuleConfig {
+  enabled Boolean        @default(true)
+  text    HairModuleText
   image   ModuleImage
 }
 
 type SettingsModules {
-  skinCare ModuleConfig
-  hairCare ModuleConfig
+  skinCare SkinModuleConfig
+  hairCare HairModuleConfig
 }
 
 model Settings {
@@ -186,10 +199,7 @@ model Settings {
   updatedAt DateTime        @updatedAt
 }
 
-// -------------------- AI Customer + Analyses --------------------
-// One row per (shop, shopify customer). We store rolled-up counters
-// (scans, orders, spend) on the Customer doc so the admin list is a
-// single-query read; detail pages fetch AiSession / Orders on demand.
+// -------------------- Customers --------------------
 
 model Customer {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -204,14 +214,16 @@ model Customer {
   currency          String?
   lastAnalysisAt    DateTime?
   lastOrderAt       DateTime?
-  dailyScanCount    Int      @default(0)  // resets each UTC day
-  dailyScanDate     String?               // "YYYY-MM-DD" — date of current dailyScanCount
+  dailyScanCount    Float    @default(0)
+  dailyScanResetAt  DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@unique([shopId, shopifyCustomerId])
   @@index([shopId, lastAnalysisAt])
 }
+
+// ------------------ AI Activity/Sessions  ----------------------
 
 model AiSession {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
@@ -228,6 +240,8 @@ model AiSession {
   @@index([shopId, customerId, startedAt])
   @@index([externalSessionId])
 }
+
+// ------------------ Orders ----------------------
 
 model Orders {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId

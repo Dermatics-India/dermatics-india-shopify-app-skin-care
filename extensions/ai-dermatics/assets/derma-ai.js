@@ -79,10 +79,7 @@ class DermaApiService {
       imageUpload: `${this.baseUrl}/api/flow/upload-image`,
       settings: `${this.proxy}/widget-settings`,
       customer: `${this.proxy}/customer`,
-      analysisStart: `${this.proxy}/analysis/start`,
-      analysisComplete: `${this.proxy}/analysis/complete`,
-      productRecommendation: `${this.proxy}/analysis/product-recommendation`,
-      imageUploaded: `${this.proxy}/analysis/image-uploaded`,
+      event: `${this.proxy}/analysis/event`,
       scanCheck: `${this.proxy}/scan-check`,
     };
 
@@ -116,40 +113,25 @@ class DermaApiService {
   }
 
   async uploadImage(formData) {
-  return this.api.post(this.endpoints.imageUpload, formData, true)
-    .then((res) => { return res; })
-    .catch((err) => {
-      return { data: null, error: err.message };
-    });
-}
+    return this.api.post(this.endpoints.imageUpload, formData, true)
+      .then((res) => { return res; })
+      .catch((err) => {
+        return { data: null, error: err.message };
+      });
+  }
 
   async upsertCustomer(payload) {
     return this.api.post(this.endpoints.customer, payload)
       .catch((err) => ({ data: null, error: err.message }));
   }
 
-  async recordAnalysisStart(payload) {
-    return this.api.post(this.endpoints.analysisStart, payload)
+  async recordEvent(type, extra = {}) {
+    return this.api.post(this.endpoints.event, { type, ...extra })
       .catch((err) => ({ data: null, error: err.message }));
   }
 
-  async recordAnalysisComplete(payload) {
-    return this.api.post(this.endpoints.analysisComplete, payload)
-      .catch((err) => ({ data: null, error: err.message }));
-  }
-
-  async recordProductRecommendation(payload) {
-    return this.api.post(this.endpoints.productRecommendation, payload)
-      .catch((err) => ({ data: null, error: err.message }));
-  }
-
-  async recordImageUploaded(payload) {
-    return this.api.post(this.endpoints.imageUploaded, payload)
-      .catch((err) => ({ data: null, error: err.message }));
-  }
-
-  async checkScanLimit(customerId) {
-    const params = customerId ? { customerId } : {};
+  async checkScanLimit(shopifyCustomerId) {
+    const params = shopifyCustomerId ? { shopifyCustomerId } : {};
     return this.api.get(this.endpoints.scanCheck, params)
       .catch(() => ({ data: { allowed: true }, error: null }));
   }
@@ -163,6 +145,7 @@ class DermaAIWizard {
   constructor(config = {}) {
     console.log("Run::constructor::start")
     this.customer = config.customer;
+    this.events = config.sessionEvents
     this.apiService = new DermaApiService(config);
 
     this.flowConfig = DermaAIWizard.mergeFlowConfig(
@@ -214,8 +197,6 @@ class DermaAIWizard {
     }
     return out;
   }
-
-
 
   // ------ Reusable --------
   _applyDynamicStyles(el, styleObj) {
@@ -640,11 +621,19 @@ class DermaAIWizard {
     this.renderChatUI();
 
     // Check daily scan limit before starting (uses logged-in customer identity)
-    const limitCheck = await this.apiService.checkScanLimit(this.state.customerId);
+    const limitCheck = await this.apiService.checkScanLimit(this.customer.id);
     if (!limitCheck?.data?.allowed) {
-      const resetTime = limitCheck?.data?.nextAvailableAt
-        ? new Date(limitCheck.data.nextAvailableAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " UTC"
-        : "midnight UTC";
+      // const resetTime = limitCheck?.data?.nextAvailableAt
+      //   ? new Date(limitCheck.data.nextAvailableAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " UTC"
+      //   : "midnight UTC";
+
+      const resetTime = new Date(limitCheck?.data?.nextAvailableAt).toLocaleString([], {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+      });
       this.addBot({
         text: `⛔ You've used your daily scan limit (${limitCheck?.data?.scansLimit || 2} scans/day). Your limit resets at ${resetTime}.`,
       });
@@ -669,6 +658,7 @@ class DermaAIWizard {
 
     this.state.sessionId = data.session_id;
     this.state.analysisCompleted = false;
+    this.state.chatStarted = false;
     this._recordCustomerAndSession().catch((err) => console.warn("analytics", err));
     this.updateHeaderTitle(this.flowConfig[this.state.activeFlow].title);
     this.addBot({ text: this.flowConfig[this.state.activeFlow].welcome });
@@ -694,7 +684,7 @@ class DermaAIWizard {
     if (!customerId) return;
     this.state.customerId = customerId;
 
-    const sessionRes = await this.apiService.recordAnalysisStart({
+    const sessionRes = await this.apiService.recordEvent(this.events.START, {
       customerId,
       externalSessionId: this.state.sessionId,
       flowType: this.flowConfig[this.state.activeFlow]?.flowType,
@@ -721,7 +711,7 @@ class DermaAIWizard {
     if (this.state.analysisCompleted) return;
     this.state.analysisCompleted = true;
     if (!this.state.aiSessionId && !this.state.sessionId) return;
-    await this.apiService.recordAnalysisComplete({
+    await this.apiService.recordEvent(this.events.COMPLETE, {
       sessionId: this.state.aiSessionId || undefined,
       externalSessionId: this.state.sessionId || undefined,
     }).catch((err) => console.warn("analytics complete", err));
@@ -747,8 +737,8 @@ class DermaAIWizard {
     }
     this.state.isSubmitting = false;
 
-    if (stepId === "product_recommendation_start") {
-      this.apiService.recordProductRecommendation({
+    if (data?.step_id === "product_recommendation_start") {
+      this.apiService.recordEvent(this.events.PRODUCT_RECOMAND, {
         sessionId: this.state.aiSessionId || undefined,
         externalSessionId: this.state.sessionId || undefined,
       }).catch((err) => console.warn("product recommendation count", err));
@@ -1023,6 +1013,181 @@ class DermaAIWizard {
     });
   }
 
+  useStaticUploadImage() {
+    return {
+      data: {
+        "session_id": "45983c3c-5053-40ef-beb3-2b542ceb2d14",
+        "step_id": "skin_analysis_result",
+        "image_url": "https://skin-hair-images.s3.ap-south-1.amazonaws.com/uploads/image-1776407306941-531608651.jpg",
+        "ui": {
+          "step_id": "skin_analysis_result",
+          "ui_type": "analysis_cards",
+          "heading": "Analysis Complete!",
+          "message": "Here are your results.",
+          "next": "goals_start",
+          "results": [
+            {
+              "category": "Acne & Blemishes",
+              "conditions": [
+                {
+                  "name": "Active Inflamed Acne Lesions (Papules and Pustules)",
+                  "confidence": 95,
+                  "location": "Right Cheek"
+                }
+              ]
+            },
+            {
+              "category": "Pigmentation Issues",
+              "conditions": [
+                {
+                  "name": "Post-inflammatory Hyperpigmentation",
+                  "confidence": 98,
+                  "location": "Right Cheek"
+                }
+              ]
+            },
+            {
+              "category": "Texture & Pores",
+              "conditions": [
+                {
+                  "name": "Uneven Skin Texture",
+                  "confidence": 90,
+                  "location": "Right Cheek"
+                }
+              ]
+            },
+            {
+              "category": "Inflammation & Redness",
+              "conditions": [
+                {
+                  "name": "Diffuse Redness and Inflammation",
+                  "confidence": 92,
+                  "location": "Right Cheek"
+                }
+              ]
+            }
+          ]
+        },
+        "next": "goals_start"
+      },
+      error: false
+    }
+  }
+
+  useStaticProductRecomandation() {
+    return {
+      data: {
+        "session_id": "45983c3c-5053-40ef-beb3-2b542ceb2d14",
+        "step_id": "product_recommendation_start",
+        "ui": {
+          "step_id": "product_recommendation_start",
+          "ui_type": "product_routine",
+          "heading": "Your Personalized Routine",
+          "message": "Based on your skin analysis & goals, here's your AM/PM skincare routine.",
+          "next": "doctor_report_start",
+          "routine": [
+            {
+              "category": "Morning Routine",
+              "products": [
+                {
+                  "name": "Cetaphil PRO Oil Control Foam Face Wash for Acne & Oily Prone Skin, 236ml",
+                  "productId": "gid://shopify/Product/7996980166909",
+                  "price": "INR 899.00",
+                  "compareAtPrice": "INR 1050.00",
+                  "image": "https://cdn.shopify.com/s/files/1/0594/0297/7442/files/ezgif.com-avif-to-jpg-converted_2.jpg?v=1702642044%22",
+                        "url": "https://dermatics.in/products/cetaphil-pro-oil-control-foam-face-wash-for-acne-oily-prone-skin-236ml%22",
+                        "variantId": "gid://shopify/ProductVariant/43674233962749",
+                  "recommendationType": "Recommended",
+                  "tags": [
+                    "Cleanser"
+                  ],
+                  "reason": "Gently cleanses, controls oil, and targets acne breakouts effectively."
+                },
+                {
+                  "name": "Excela Moisturiser for oily & acne prone skin, 50gm",
+                  "productId": "gid://shopify/Product/7190840115362",
+                  "price": "INR 499.00",
+                  "compareAtPrice": "INR 610.00",
+                  "image": "https://cdn.shopify.com/s/files/1/0594/0297/7442/files/Excelamoisturiser50g_3000x-Photoroom.png?v=1756446361%22",
+                        "url": "https://dermatics.in/products/excela-moisturiser-for-oily-acne-prone-skin-50gm",
+                  "variantId": "gid://shopify/ProductVariant/45397679276285",
+                  "recommendationType": "Recommended",
+                  "tags": [
+                    "Moisturizer"
+                  ],
+                  "reason": "Hydrates without clogging pores; balances oil for acne-prone skin."
+                }
+              ]
+            },
+            {
+              "category": "Evening Routine",
+              "products": [
+                {
+                  "name": "Cetaphil PRO Oil Control Foam Face Wash for Acne & Oily Prone Skin, 236ml",
+                  "productId": "gid://shopify/Product/7996980166909",
+                  "price": "INR 899.00",
+                  "compareAtPrice": "INR 1050.00",
+                  "image": "https://cdn.shopify.com/s/files/1/0594/0297/7442/files/ezgif.com-avif-to-jpg-converted_2.jpg?v=1702642044%22",
+                        "url": "https://dermatics.in/products/cetaphil-pro-oil-control-foam-face-wash-for-acne-oily-prone-skin-236ml%22",
+                        "variantId": "gid://shopify/ProductVariant/43674233962749",
+                  "recommendationType": "Recommended",
+                  "tags": [
+                    "Cleanser"
+                  ],
+                  "reason": "Deeply cleanses to remove impurities, control oil and acne."
+                },
+                {
+                  "name": "Cosderma Leeposh Clear Skin Serum 12% Niacinamide Serum + Zinc PCA 2% for Acne, Spot, Scars, Marks Melasma, 30ml",
+                  "productId": "gid://shopify/Product/8957933322493",
+                  "price": "INR 1200.00",
+                  "compareAtPrice": "INR 1200.00",
+                  "image": "https://cdn.shopify.com/s/files/1/0594/0297/7442/files/cadcfa_6123a94afa8443df9720f60b4b4b2ae1_mv2.jpg?v=1756378422%22",
+                        "url": "https://dermatics.in/products/cosderma-leeposh-clear-skin-serum-12-niacinamide-serum-zinc-pca-2-for-acne-spot-scars-marks-melasma-30ml%22",
+                        "variantId": "gid://shopify/ProductVariant/46586601111805",
+                  "recommendationType": "Recommended",
+                  "tags": [
+                    "Treatment Serum"
+                  ],
+                  "reason": "Targets acne, reduces inflammation, minimizes pores, and lightens PIH."
+                },
+                {
+                  "name": "Rega BPO Acne Spot Corrector Gel 15gm",
+                  "productId": "gid://shopify/Product/8850909069565",
+                  "price": "INR 461.00",
+                  "compareAtPrice": "INR 619.00",
+                  "image": "https://cdn.shopify.com/s/files/1/0594/0297/7442/files/RegalizRega-BPOAcneSpotCorrectorGel15gm1-removebg-preview_1.png?v=1756441493%22",
+                        "url": "https://dermatics.in/products/regabpo-acne-spot-corrector-gel-15gm",
+                  "variantId": "gid://shopify/ProductVariant/46152660910333",
+                  "recommendationType": "Recommended",
+                  "tags": [
+                    "Spot Treatment"
+                  ],
+                  "reason": "Quickly treats active inflamed acne lesions and prevents new breakouts."
+                },
+                {
+                  "name": "ZitMoist Gel For Acne Prone Skin 50gm,",
+                  "productId": "gid://shopify/Product/7094006120610",
+                  "price": "INR 289.00",
+                  "compareAtPrice": "INR 405.00",
+                  "image": "https://cdn.shopify.com/s/files/1/0594/0297/7442/files/zitmoist03-Photoroom.png?v=1756367049",
+                  "url": "https://dermatics.in/products/zitmoist-gel-for-acne-prone-skin-50gm",
+                  "variantId": "gid://shopify/ProductVariant/45397507277053",
+                  "recommendationType": "Recommended",
+                  "tags": [
+                    "Moisturizer"
+                  ],
+                  "reason": "Lightweight hydration post-treatment, specifically for acne-prone skin."
+                }
+              ]
+            }
+          ]
+        },
+        "next": "doctor_report_start"
+      },
+      error: false
+    }
+  }
+
   renderImageUpload() {
     const inputId = `img-upload-${this.sanitizeDomId(this.state.sessionId || "session")}`;
 
@@ -1037,7 +1202,7 @@ class DermaAIWizard {
         <span>Upload Image</span>
       </label>
     </div>
-  `;
+    `;
 
     this.addUI(html, (root) => {
       const input = this.queryById(root, inputId);
@@ -1058,7 +1223,11 @@ class DermaAIWizard {
         this.addUser({ text: "📸 Photo uploaded" });
         this.addBot({ text: "⏳ Analyzing image..." });
 
-        const { data, error } = await this.apiService.uploadImage(fd);
+        // For the Production 
+        // const { data, error } = await this.apiService.uploadImage(fd);
+
+        // For the Testing
+        const { data, error } = this.useStaticUploadImage();
 
         if (error) {
           console.error(error);
@@ -1070,7 +1239,7 @@ class DermaAIWizard {
         }
 
         // Image uploaded successfully — record 0.5 scan and enforce daily limit
-        const uploadRes = await this.apiService.recordImageUploaded({
+        const uploadRes = await this.apiService.recordEvent(this.events.IMAGE_UPLOAD, {
           sessionId: this.state.aiSessionId || undefined,
           externalSessionId: this.state.sessionId || undefined,
         });
@@ -1281,6 +1450,10 @@ class DermaAIWizard {
         downloadBtn.addEventListener("click", () => {
           if (hasPdf) {
             window.open(ui.pdf_url, "_blank", "noopener,noreferrer");
+            this.apiService.recordEvent(this.events.DOCTOR_REPORT, {
+              sessionId: this.state.aiSessionId || undefined,
+              customerId: this.state.customerId || undefined,
+            }).catch(() => {});
           } else {
             window.alert("Report is still generating. Please try again in a moment.");
           }
@@ -1364,6 +1537,15 @@ class DermaAIWizard {
     this.state.isSubmitting = true;
     const reply = await this._requestAssistantReply(text);
     this.state.isSubmitting = false;
+
+    // Fire once on the first chat response (not on entering assistant mode).
+    if (!this.state.chatStarted) {
+      this.state.chatStarted = true;
+      this.apiService.recordEvent(this.events.AI_CHAT_START, {
+        sessionId: this.state.aiSessionId || undefined,
+        customerId: this.state.customerId || undefined,
+      }).catch(() => {});
+    }
 
     this.state.timeline = this.state.timeline.filter((m) => m.marker !== typingMarker);
     this.addBot({ assistant: true, text: reply });
@@ -1519,6 +1701,15 @@ class DermaAIWizard {
   }
 }
 
+const events = {
+  START: "session_start",
+  COMPLETE: "analysis_complete",
+  PRODUCT_RECOMAND: "product_recommendation",
+  IMAGE_UPLOAD: "image_upload",
+  DOCTOR_REPORT: "doctor_report_download",
+  AI_CHAT_START: "ai_chat_start"
+}
+
 /** Expose class for multiple instances: `new DermaAIWizard({ baseUrl, flowConfig })` */
 if (typeof window !== "undefined" && !window.__DERMA_AI_BOOTED) {
   window.__DERMA_AI_BOOTED = true;
@@ -1528,7 +1719,8 @@ if (typeof window !== "undefined" && !window.__DERMA_AI_BOOTED) {
     proxy: "/apps/derma-advisor",
     baseUrl: "https://app.dermatics.in",
     customer: window.DERMA_AI_CUSTOMER,
-    assets: window.DERMA_AI_APP_ASSETS
+    assets: window.DERMA_AI_APP_ASSETS,
+    sessionEvents: events
   });
 
   console.log("starting the APP-----")

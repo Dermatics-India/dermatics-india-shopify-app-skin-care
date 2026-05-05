@@ -8,9 +8,9 @@ export const loader = async ({ request }) => {
   try {
     const { session } = await authenticate.public.appProxy(request);
     const shopDomain = session?.shop;
-    const customerId = new URL(request.url).searchParams.get("customerId");
+    const shopifyCustomerId = new URL(request.url).searchParams.get("shopifyCustomerId");
 
-    const result = await checkScanAvailability({ shopDomain, customerId });
+    const result = await checkScanAvailability({ shopDomain, shopifyCustomerId });
     return Response.json(result, {
       status: 200,
       headers: { "Cache-Control": "no-store" },

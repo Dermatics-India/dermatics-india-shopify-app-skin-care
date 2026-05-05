@@ -1,9 +1,29 @@
 import prisma from "../db.server";
+import { EVENT_TYPES } from "~/constant";
 
 const DEFAULT_PER_PAGE = 15;
 
+const INSTANT_EVENT_LABELS = {
+  [EVENT_TYPES.IMAGE_UPLOAD]: "Skin Image Uploaded",
+  [EVENT_TYPES.PRODUCT_RECOMMENDATION]: "Product Recommendations Generated",
+  [EVENT_TYPES.DOCTOR_REPORT_DOWNLOAD]: "Doctor Report Downloaded",
+  [EVENT_TYPES.AI_CHAT_START]: "AI Chat Started",
+};
+
 function eventFromAnalysis(a) {
-  const analysisType = a?.flowType === 'skin_flow' ? "Skin Analysis" : "Hair Analysis"
+  // One-shot event types stored as completed AiSession rows.
+  if (INSTANT_EVENT_LABELS[a?.flowType]) {
+    return {
+      id: `a-${a?.id}`,
+      type: a?.flowType,
+      title: INSTANT_EVENT_LABELS[a?.flowType],
+      description: "",
+      timestamp: (a?.completedAt || a?.startedAt).toISOString(),
+    };
+  }
+
+  // Standard analysis sessions (skin_flow / hair_flow).
+  const analysisType = a?.flowType === "skin_flow" ? "Skin Analysis" : "Hair Analysis";
   return {
     id: `a-${a?.id}`,
     type: "analysis",

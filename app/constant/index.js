@@ -39,3 +39,19 @@ export const USAGE_PERIOD_DAYS = 30;
 
 // Default trial length for paid plans (each plan can override via Plans.trialDays).
 export const DEFAULT_TRIAL_DAYS = 7;
+
+export const MS_PER_DAY = 24 * 60 * 60 * 1000; // Milliseconds of the Day 
+
+export const PERIOD_MS = USAGE_PERIOD_DAYS * MS_PER_DAY;
+export const DAILY_SCAN_LIMIT = 2;
+export const USAGE_PER_SCAN = 0.5;
+export const SCAN_WINDOW_MS = 24 * 60 * 60 * 1000; // 24-hour rolling window
+
+export const EVENT_TYPES = {
+  SESSION_START: "session_start",
+  IMAGE_UPLOAD: "image_upload",
+  PRODUCT_RECOMMENDATION: "product_recommendation",
+  ANALYSIS_COMPLETE: "analysis_complete",
+  DOCTOR_REPORT_DOWNLOAD: "doctor_report_download",
+  AI_CHAT_START: "ai_chat_start",
+};

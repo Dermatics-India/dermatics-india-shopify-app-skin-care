@@ -2,13 +2,11 @@ import prisma from "../db.server";
 import {
   PLAN_IDS,
   SUBSCRIPTION_STATUS,
-  USAGE_PERIOD_DAYS,
   FEATURE_KEYS,
+  PERIOD_MS,
+  MS_PER_DAY,
+  USAGE_PER_SCAN
 } from "../constant/index.js";
-
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000; // Milliseconds of the Day 
-const PERIOD_MS = USAGE_PERIOD_DAYS * MS_PER_DAY;
 
 const getStoredPlanId = (shopRecord) =>
   shopRecord?.subscription?.planId || PLAN_IDS.FREE;
@@ -116,7 +114,7 @@ export const getFreePlanPermissions = async () => {
 // units defaults to 0.5 — image upload and product analysis each cost half a scan.
 // We rollover the period inline first, then use a conditional updateMany so
 // concurrent calls cannot push the counter past the cap.
-export const consumeUsage = async (shopRecord, plan, units = 0.5) => {
+export const consumeUsage = async (shopRecord, plan, units = USAGE_PER_SCAN) => {
   if (!plan) return { allowed: false, reason: "Plan not found" };
 
   if (rolloverUsageIfExpired(shopRecord)) {
