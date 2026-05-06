@@ -192,6 +192,7 @@
   border-top: 1px solid var(--derma-border);
 }
 
+/* For the Show AI Chat  */
 #derma-ai-drawer.has-composer .derma-ai-composer {
   display: flex;
 }

@@ -539,8 +539,8 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
         templateKey: process.env.ZEPTOMAIL_TEMPLATE_PLAN_UPGRADE,
         mergeInfo: buildMergeInfo({
           shop,
+          ownerName: shopRecord.ownerName,
           planName: activePlan.name,
-          trialEndsAt: trialEndsAt || null,
         }),
       });
     }
@@ -560,7 +560,7 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
       to: shopRecord.ownerEmail,
       toName: shopRecord.ownerName,
       templateKey: process.env.ZEPTOMAIL_TEMPLATE_PLAN_EXPIRED,
-      mergeInfo: buildMergeInfo({ shop, planName: expiredPlan?.name || "your plan" }),
+      mergeInfo: buildMergeInfo({ shop, ownerName: shopRecord.ownerName, planName: expiredPlan?.name || "", expiryDate: new Date() }),
     });
     return;
   }
@@ -578,7 +578,7 @@ export const onAppSubscriptionUpdate = async ({ shop, payload }) => {
       to: shopRecord.ownerEmail,
       toName: shopRecord.ownerName,
       templateKey: process.env.ZEPTOMAIL_TEMPLATE_PLAN_EXPIRED,
-      mergeInfo: buildMergeInfo({ shop, planName: frozenPlan?.name || "your plan" }),
+      mergeInfo: buildMergeInfo({ shop, ownerName: shopRecord.ownerName, planName: frozenPlan?.name || "", expiryDate: new Date() }),
     });
     return;
   }

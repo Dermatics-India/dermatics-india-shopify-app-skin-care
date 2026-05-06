@@ -85,7 +85,9 @@ export const checkUsageLimit = async ({ shopRecord, featureKey }) => {
         templateKey: process.env.ZEPTOMAIL_TEMPLATE_USAGE_LIMIT,
         mergeInfo: buildMergeInfo({
           shop: shopRecord.shop,
+          ownerName: shopRecord.ownerName,
           planName: plan.name,
+          usagePercent: Math.min(100, Math.round(((shopRecord.usage?.count || 0) / (plan.usageLimit || 1)) * 100)).toString(),
         }),
       });
     }

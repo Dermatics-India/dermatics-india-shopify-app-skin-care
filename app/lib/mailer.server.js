@@ -1,6 +1,6 @@
 // ── ZeptoMail (active) ────────────────────────────────────────────────────────
 import { SendMailClient } from "zeptomail";
-import { APP_NAME, APP_STORE_URL } from "../constant/app.js";
+import { APP_NAME } from "../constant/app.js";
 
 let _zepto = null;
 function getZeptoClient() {
@@ -43,16 +43,22 @@ function isZeptoConfigured() {
 // Constructs the standard merge_info object shared across all ZeptoMail
 // templates. Override only the fields that differ per email type.
 // ─────────────────────────────────────────────────────────────────────────────
-export function buildMergeInfo({ shop, planName = "", trialEndsAt = null, link = null } = {}) {
+export function buildMergeInfo({
+  shop,
+  ownerName = "",
+  planName = "",
+  usagePercent = "",
+  expiryDate = null,
+} = {}) {
   return {
     app_name: APP_NAME,
-    store_name: shop || "",
-    plan_name: planName,
-    trial_date: trialEndsAt
-      ? trialEndsAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    owner_name: ownerName || "",
+    shop_name: shop || "",
+    current_plan_name: planName,
+    usage_percent: usagePercent,
+    expiry_date: expiryDate
+      ? new Date(expiryDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
       : "",
-    trial_end_link: link || (shop ? `https://${shop}/admin/apps` : APP_STORE_URL),
-    team: `${APP_NAME} Team`,
   };
 }
 

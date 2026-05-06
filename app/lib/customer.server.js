@@ -259,9 +259,9 @@ function getDailyScanUpdate(customer) {
 }
 
 // Shared: look up an AI session by internal id or external id.
-async function findSession(shopId, { sessionId, externalSessionId }) {
-  if (sessionId) {
-    return prisma.aiSession.findFirst({ where: { id: sessionId, shopId } });
+async function findSession(shopId, { aiSessionId, externalSessionId }) {
+  if (aiSessionId) {
+    return prisma.aiSession.findFirst({ where: { id: aiSessionId, shopId } });
   }
   return prisma.aiSession.findFirst({
     where: { shopId, externalSessionId, status: "started" },
@@ -304,7 +304,7 @@ export async function recordCustomerEvent({ shopDomain, payload }) {
   const { shop, error } = await requireShop(shopDomain);
   if (error) return error;
 
-  const { type, customerId, sessionId, externalSessionId, flowType } = payload || {};
+  const { type, customerId, aiSessionId, externalSessionId, flowType } = payload || {};
 
   if (!Object.values(EVENT_TYPES).includes(type)) {
     return {
@@ -315,8 +315,8 @@ export async function recordCustomerEvent({ shopDomain, payload }) {
 
   // Resolve the main analysis session (needed for analysis_complete and to find the customer).
   let mainSession = null;
-  if (sessionId || externalSessionId) {
-    mainSession = await findSession(shop.id, { sessionId, externalSessionId });
+  if (aiSessionId || externalSessionId) {
+    mainSession = await findSession(shop.id, { aiSessionId, externalSessionId });
   }
 
   // Resolve customer from payload or from the session.
@@ -347,7 +347,7 @@ export async function recordCustomerEvent({ shopDomain, payload }) {
         },
       });
       mainSession = newSession;
-      responseData.sessionId = newSession.id;
+      responseData.aiSessionId = newSession.id;
       break;
     }
 
@@ -426,7 +426,7 @@ export async function recordCustomerEvent({ shopDomain, payload }) {
 
   return {
     status: 200,
-    body: { success: true, data: { sessionId: mainSession?.id || null, ...responseData } },
+    body: { success: true, data: { aiSessionId: mainSession?.id || null, ...responseData } },
   };
 }
 

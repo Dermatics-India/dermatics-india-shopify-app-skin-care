@@ -1,7 +1,6 @@
 import prisma from "../db.server";
 import { sessionStorage } from "../shopify.server";
 import { PLAN_IDS } from "../constant/index.js";
-import { APP_STORE_URL } from "../constant/app.js";
 import { sendTemplateMail, buildMergeInfo } from "./mailer.server";
 
 // Called from the afterAuth hook (see shopify.server.js). Three scenarios:
@@ -132,7 +131,7 @@ export const onAppInstall = async ({ session }) => {
         to: shopRecord.ownerEmail,
         toName: shopRecord.ownerName,
         templateKey: process.env.ZEPTOMAIL_TEMPLATE_ON_INSTALL,
-        mergeInfo: buildMergeInfo({ shop, planName: "Free" }),
+        mergeInfo: buildMergeInfo({ shop, ownerName: shopRecord.ownerName, planName: "Free" }),
       });
     }
   } catch (err) {
@@ -184,7 +183,7 @@ export const onAppUninstall = async ({ shop }) => {
         templateKey: process.env.ZEPTOMAIL_TEMPLATE_ON_UNINSTALL,
         mergeInfo: buildMergeInfo({
           shop,
-          link: APP_STORE_URL,
+          ownerName: shopRecord.ownerName,
         }),
       });
     }
